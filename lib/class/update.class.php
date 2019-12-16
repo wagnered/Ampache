@@ -187,6 +187,9 @@ class Update
         $update_string = "* Add a last_count to search table to speed up access requests<br />";
         $version[]     = array('version' => '400005', 'description' => $update_string);
 
+        $update_string = "* Add filter_users to catalog table<br />";
+        $version[]     = array('version' => '400006', 'description' => $update_string);
+
         return $version;
     }
 
@@ -1023,6 +1026,7 @@ class Update
 
         return $retval;
     }
+
     /**
      * update_400005
      *
@@ -1032,6 +1036,20 @@ class Update
     {
         $retval = true;
         $sql    = "ALTER TABLE `search` ADD `last_count` INT(11) NULL;";
+        $retval &= Dba::write($sql);
+
+        return $retval;
+    }
+
+    /**
+     * update_400006
+     *
+     * Add filter_users to catalog table
+     */
+    public static function update_400005()
+    {
+        $retval = true;
+        $sql    = "ALTER TABLE `catalog` ADD `filter_users` VARCHAR(255) NULL;";
         $retval &= Dba::write($sql);
 
         return $retval;
