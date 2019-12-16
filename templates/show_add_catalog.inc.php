@@ -62,6 +62,10 @@ $default_sort   = "%a/%A"; ?>
             <td><input type="text" name="sort_pattern" value="<?php echo $default_sort; ?>" /></td>
         </tr>
         <tr>
+            <td><?php echo T_('Catalog User Filter'); ?>:<br /></td>
+            <td><input type="text" name="filter_users" value="" /></td>
+        </tr>
+        <tr>
             <td><?php echo T_('Gather Art'); ?>:</td>
             <td><input type="checkbox" name="gather_art" value="1" checked /></td>
         </tr>

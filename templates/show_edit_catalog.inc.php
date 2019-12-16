@@ -62,6 +62,14 @@ UI::show_box_top(sprintf(T_('Settings for Catalog: %s'), $catalog->name . ' (' .
                 <input type="text" name="sort_pattern" value="<?php echo scrub_out($catalog->sort_pattern);?>" />
             </td>
         </tr>
+        <tr>
+            <td>
+                <?php echo T_('Catalog User Filter'); ?>:<br />
+            </td>
+            <td>
+                <input type="text" name="filter_users" value="<?php echo scrub_out($catalog->filter_users);?>" />
+            </td>
+        </tr>
     </table>
     <div class="formValidation">
         <input type="hidden" name="catalog_id" value="<?php echo scrub_out($catalog->id); ?>" />
