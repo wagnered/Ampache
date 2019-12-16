@@ -98,6 +98,10 @@ abstract class Catalog extends database_object
      * @var int $enabled
      */
     public $enabled;
+    /**
+     * @var string $filter_users
+     */
+    public $filter_users;
 
     /*
      * This is a private var that's used during catalog builds
@@ -655,6 +659,7 @@ abstract class Catalog extends database_object
         $type           = $data['type'];
         $rename_pattern = $data['rename_pattern'];
         $sort_pattern   = $data['sort_pattern'];
+        $filter_users   = $data['filter_users'];
         $gather_types   = $data['gather_media'];
 
         // Should it be an array? Not now.
@@ -668,12 +673,13 @@ abstract class Catalog extends database_object
 
         if ($include) {
             $sql = 'INSERT INTO `catalog` (`name`, `catalog_type`, ' .
-                '`rename_pattern`, `sort_pattern`, `gather_types`) VALUES (?, ?, ?, ?, ?)';
+                '`rename_pattern`, `sort_pattern`, `filter_users`, `gather_types`) VALUES (?, ?, ?, ?, ?)';
             Dba::write($sql, array(
                 $name,
                 $type,
                 $rename_pattern,
                 $sort_pattern,
+                $filter_users,
                 $gather_types
             ));
 
@@ -1558,8 +1564,8 @@ abstract class Catalog extends database_object
      */
     public static function update_settings($data)
     {
-        $sql    = "UPDATE `catalog` SET `name` = ?, `rename_pattern` = ?, `sort_pattern` = ? WHERE `id` = ?";
-        $params = array($data['name'], $data['rename_pattern'], $data['sort_pattern'], $data['catalog_id']);
+        $sql    = "UPDATE `catalog` SET `name` = ?, `rename_pattern` = ?, `sort_pattern` = ? , `filter_users` = ? WHERE `id` = ?";
+        $params = array($data['name'], $data['rename_pattern'], $data['sort_pattern'], $data['filter_users'] $data['catalog_id']);
         Dba::write($sql, $params);
 
         return true;
