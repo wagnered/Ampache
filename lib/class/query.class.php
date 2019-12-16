@@ -486,6 +486,7 @@ class Query
             case 'update_lt':
             case 'update_gt':
             case 'catalog_enabled':
+            case 'catalog_filter';
             case 'year_lt':
             case 'year_lg':
             case 'year_eq':
@@ -1387,6 +1388,9 @@ class Query
                     if ($value != 0) {
                         $filter_sql = " `song`.`catalog` = '$value' AND ";
                     }
+                break;
+                case 'catalog_filter':
+                        $filter_sql = " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR filter_users IS NULL) AND ";
                 break;
                 case 'catalog_enabled':
                     $this->set_join('left', '`catalog`', '`catalog`.`id`', '`song`.`catalog`', 100);
