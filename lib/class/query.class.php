@@ -1456,6 +1456,11 @@ class Query
                         $filter_sql = " (`song`.`catalog` = '$value') AND ";
                     }
                 break;
+                case 'catalog_filter':
+                    $this->set_join('left', '`song`', '`album`.`id`', '`song`.`album`', 100);
+                    $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
+                    $filter_sql = " (`song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR filter_users IS NULL)) AND ";
+                break;
                 case 'update_lt':
                     $this->set_join('left', '`song`', '`song`.`album`', '`album`.`id`', 100);
                     $filter_sql = " `song`.`update_time` <= '" . Dba::escape($value) . "' AND ";
@@ -1491,6 +1496,11 @@ class Query
                     $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
                     $filter_sql = "  (`catalog`.`id` = '$value') AND ";
                 }
+                break;
+                case 'catalog_filter':
+                    $this->set_join('left', '`song`', '`artist`.`id`', '`song`.`artist`', 100);
+                    $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
+                    $filter_sql = " (`song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR filter_users IS NULL)) AND ";
                 break;
                 case 'exact_match':
                     $filter_sql = " `artist`.`name` = '" . Dba::escape($value) . "' AND ";
