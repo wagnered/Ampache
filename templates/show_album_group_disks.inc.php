@@ -173,7 +173,9 @@ if ($directplay_limit > 0) {
         $browse->set_type('song');
         $browse->set_simple_browse(true);
         $browse->set_filter('album', $album_id);
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('track', 'ASC');
         $browse->get_objects();
         $browse->show_objects(null, true); // true argument is set to show the reorder column

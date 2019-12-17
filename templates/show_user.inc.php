@@ -159,7 +159,9 @@ if ($client->f_avatar) {
             $browse      = new Browse();
             $browse->set_type('artist', $sql);
             $browse->set_simple_browse(true);
-            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+            if (AmpConfig::get('catalog_filter')) {
+                $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+            }
             $browse->show_objects();
             $browse->store(); ?>
         </div>

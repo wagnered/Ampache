@@ -433,7 +433,9 @@ class Api
         self::$browse->reset_filters();
         self::$browse->set_type($type);
         self::$browse->set_sort('name', 'ASC');
-        self::$browse->set_filter('catalog_filter', (string) $user->id);
+        if (AmpConfig::get('catalog_filter')) {
+            self::$browse->set_filter('catalog_filter', (string) $user->id);
+        }
 
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         self::set_filter($method, $input['filter']);
@@ -534,7 +536,9 @@ class Api
         self::$browse->reset_filters();
         self::$browse->set_type('artist');
         self::$browse->set_sort('name', 'ASC');
-        self::$browse->set_filter('catalog_filter', (string) $user->id);
+        if (AmpConfig::get('catalog_filter')) {
+            self::$browse->set_filter('catalog_filter', (string) $user->id);
+        }
 
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         self::set_filter($method, $input['filter']);
@@ -643,7 +647,9 @@ class Api
         self::$browse->reset_filters();
         self::$browse->set_type('album');
         self::$browse->set_sort('name', 'ASC');
-        self::$browse->set_filter('catalog_filter', (string) $user->id);
+        if (AmpConfig::get('catalog_filter')) {
+            self::$browse->set_filter('catalog_filter', (string) $user->id);
+        }
 
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         self::set_filter($method, $input['filter']);
@@ -867,7 +873,9 @@ class Api
         self::$browse->reset_filters();
         self::$browse->set_type('song');
         self::$browse->set_sort('title', 'ASC');
-        self::$browse->set_filter('catalog_filter', (string) $user->id);
+        if (AmpConfig::get('catalog_filter')) {
+            self::$browse->set_filter('catalog_filter', (string) $user->id);
+        }
 
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         self::set_filter($method, $input['filter']);
@@ -1349,7 +1357,9 @@ class Api
         self::$browse->reset_filters();
         self::$browse->set_type('video');
         self::$browse->set_sort('title', 'ASC');
-        self::$browse->set_filter('catalog_filter', (string) $user->id);
+        if (AmpConfig::get('catalog_filter')) {
+            self::$browse->set_filter('catalog_filter', (string) $user->id);
+        }
 
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         Api::set_filter($method, $input['filter']);

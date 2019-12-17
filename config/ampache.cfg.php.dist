@@ -7,7 +7,7 @@
 ; if this config file is up to date
 ; this is compared against a value hard-coded
 ; into the init script
-config_version = 40
+config_version = 41
 
 ; Allow you to hard code a default git branch for Ampache
 ; If you set this value the inbuilt updater will use this branch for updates.
@@ -266,6 +266,13 @@ catalog_prefix_pattern = "The|An|A|Die|Das|Ein|Eine|Les|Le|La"
 ; WARNING: this increase sensibly sql requests and slow down Ampache a lot
 ; DEFAULT: false
 ;catalog_disable = "false"
+
+; Catalog filter
+; This defines if catalog can be filtered per user.
+; The filters are set in the catalog management pages.
+; WARNING: this increase sensibly sql requests and slow down Ampache a lot
+; DEFAULT: false
+;catalog_filter = "false"
 
 ; Delete from disk
 ; This determines if catalog manager users can delete media from disk.

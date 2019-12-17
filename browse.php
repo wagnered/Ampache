@@ -77,7 +77,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('name', 'ASC');
         $browse->update_browse_from_session();  // Update current index depending on what is in session.
         $browse->show_objects();
@@ -106,7 +108,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('name', 'ASC');
         $browse->update_browse_from_session();
         $browse->show_objects();
@@ -116,7 +120,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('title', 'ASC');
         $browse->update_browse_from_session();
         $browse->show_objects();
@@ -125,7 +131,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('name', 'ASC');
         $browse->update_browse_from_session();
         $browse->show_objects();
@@ -160,7 +168,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('title', 'ASC');
         $browse->update_browse_from_session();
         $browse->show_objects();
@@ -169,7 +179,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('name', 'ASC');
         $browse->update_browse_from_session();
         $browse->show_objects();
@@ -178,7 +190,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('season_number', 'ASC');
         $browse->update_browse_from_session();
         $browse->show_objects();
@@ -190,7 +204,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->update_browse_from_session();
         $browse->show_objects();
     break;
@@ -198,7 +214,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('name', 'ASC');
         $browse->update_browse_from_session();
         $browse->show_objects();
@@ -218,7 +236,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('title', 'ASC');
         $browse->update_browse_from_session();
         $browse->show_objects();
@@ -227,7 +247,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_sort('pubdate', 'DESC');
         $browse->update_browse_from_session();
         $browse->show_objects();

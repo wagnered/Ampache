@@ -100,7 +100,9 @@ if ($label->website) {
     <div id="tabs_content">
         <div id="artists" class="tab_content" style="display: block;">
 <?php
-    $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+    if (AmpConfig::get('catalog_filter')) {
+        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+    }
     $browse->show_objects($object_ids, true);
     $browse->set_use_alpha(false, false);
     $browse->store(); ?>

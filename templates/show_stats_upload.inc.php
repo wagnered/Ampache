@@ -20,28 +20,36 @@
  *
  */
 
-$sql    = Catalog::get_uploads_sql('song', (int) Core::get_global('user')->id);
+$user   = Core::get_global('user');
+$filter = AmpConfig::get('catalog_filter');
+$sql    = Catalog::get_uploads_sql('song', (int) $user->id);
 $browse = new Browse();
 $browse->set_type('song', $sql);
 $browse->set_simple_browse(true);
-$browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+if ($filter) {
+    $browse->set_filter('catalog_filter', (string) $user->id);
+}
 $browse->show_objects();
 $browse->store();
 
-$sql    = Catalog::get_uploads_sql('album', (int) Core::get_global('user')->id);
+$sql    = Catalog::get_uploads_sql('album', (int) $user->id);
 $browse = new Browse();
 $browse->set_type('album', $sql);
 $browse->set_simple_browse(true);
-$browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+if ($filter) {
+    $browse->set_filter('catalog_filter', (string) $user->id);
+}
 $browse->show_objects();
 $browse->store();
 
 if (!AmpConfig::get('upload_user_artist')) {
-    $sql    = Catalog::get_uploads_sql('artist', (int) Core::get_global('user')->id);
+    $sql    = Catalog::get_uploads_sql('artist', (int) $user->id);
     $browse = new Browse();
     $browse->set_type('artist', $sql);
     $browse->set_simple_browse(true);
-    $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+    if ($filter) {
+        $browse->set_filter('catalog_filter', (string) $user->id);
+    }
     $browse->show_objects();
     $browse->store();
 }

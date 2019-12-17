@@ -372,6 +372,10 @@ class Album extends database_object implements library_item
             $sqlj .= "LEFT JOIN `catalog` ON `catalog`.`id` = `song`.`catalog` ";
             $sqlw .= "AND `catalog`.`enabled` = '1' ";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sqlw .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
+
         if ($this->allow_group_disks) {
             $sqlw .= "GROUP BY `album`.`prefix`, `album`.`name`, `album`.`album_artist`, `album`.`release_type`, `album`.`mbid`, `album`.`year`, `catalog_id`"; //TODO mysql8 test
         } else {
@@ -587,6 +591,10 @@ class Album extends database_object implements library_item
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
+
         $sql .= "ORDER BY `song`.`track`, `song`.`title`";
         if ($limit) {
             $sql .= " LIMIT " . (string) $limit;
@@ -971,6 +979,10 @@ class Album extends database_object implements library_item
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sqlw .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
+
         $sql .= "ORDER BY RAND()";
         $db_results = Dba::read($sql, array($this->id));
 
@@ -1194,6 +1206,10 @@ class Album extends database_object implements library_item
         } else {
             $where = "WHERE '1' = '1' ";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $where .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
+
         if ($with_art) {
             $sql .= "LEFT JOIN `image` ON (`image`.`object_type` = 'album' AND `image`.`object_id` = `album`.`id`) ";
             $where .= "AND `image`.`id` IS NOT NULL ";

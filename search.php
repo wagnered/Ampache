@@ -33,7 +33,9 @@ switch ($_REQUEST['action']) {
             require_once AmpConfig::get('prefix') . UI::find_template('show_search_options.inc.php');
             $results = Search::run($_REQUEST);
             $browse->set_type(Core::get_request('type'));
-            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+            if (AmpConfig::get('catalog_filter')) {
+                $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+            }
             $browse->show_objects($results);
             $browse->store();
         } else {

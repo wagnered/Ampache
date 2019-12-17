@@ -327,7 +327,9 @@ switch ($_REQUEST['action']) {
             $browse = new Browse();
             $browse->set_type('song');
             $browse->set_simple_browse(false);
-            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+            if (AmpConfig::get('catalog_filter')) {
+                $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+            }
             $browse->save_objects($object_ids);
             $browse->store();
 

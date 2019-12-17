@@ -203,7 +203,9 @@ switch ($_REQUEST['action']) {
         }
 
         ob_start();
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->show_objects(null, $argument);
         $results[$browse->get_content_div()] = ob_get_clean();
     break;

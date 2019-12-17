@@ -44,7 +44,9 @@ switch ($_REQUEST['action']) {
         $browse->set_show_header(true);
         $browse->set_type('song');
         $browse->set_simple_browse(true);
-        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_filter('album', Core::get_request('id'));
         $browse->set_sort('track', 'ASC');
         $browse->get_objects();

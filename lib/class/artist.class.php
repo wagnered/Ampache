@@ -290,6 +290,10 @@ class Artist extends database_object implements library_item
         if (AmpConfig::get('catalog_disable')) {
             $catalog_where .= "AND `catalog`.`enabled` = '1'";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $catalog_where .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
+
 
         $sort_type = AmpConfig::get('album_sort');
         $sort_disk = (AmpConfig::get('album_group')) ? "" : ", `album`.`disk`";
@@ -367,6 +371,10 @@ class Artist extends database_object implements library_item
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
+
         $sql .= "ORDER BY `song`.`album`, `song`.`track`";
         $db_results = Dba::read($sql, array($this->id));
 
@@ -395,6 +403,10 @@ class Artist extends database_object implements library_item
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
+
         $sql .= "GROUP BY `song`.`id` ORDER BY count(`object_count`.`object_id`) DESC LIMIT " . (string) $count;
         $db_results = Dba::read($sql);
         //debug_event('artist.class', 'get_top_songs sql: ' . $sql, 5);
@@ -425,6 +437,10 @@ class Artist extends database_object implements library_item
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
+
         $sql .= "ORDER BY RAND()";
         $db_results = Dba::read($sql, array($this->id));
 
@@ -463,6 +479,10 @@ class Artist extends database_object implements library_item
         } else {
             $where = "WHERE '1' = '1' ";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $where .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
+
         if ($with_art) {
             $sql .= "LEFT JOIN `image` ON (`image`.`object_type` = 'artist' AND `image`.`object_id` = `artist`.`id`) ";
             $where .= "AND `image`.`id` IS NOT NULL ";
@@ -519,6 +539,10 @@ class Artist extends database_object implements library_item
             if (AmpConfig::get('catalog_disable')) {
                 $sqlw .= " AND `catalog`.`enabled` = '1' ";
             }
+            if (AmpConfig::get('catalog_filter')) {
+                $sqlw .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            }
+
             $sql .= $sqlw . "GROUP BY `song`.`artist`";
 
             $db_results = Dba::read($sql, $params);

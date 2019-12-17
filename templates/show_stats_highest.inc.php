@@ -21,11 +21,14 @@
  */
 
 $user   = Core::get_global('user');
+$filter = AmpConfig::get('catalog_filter');
 $sql    = Rating::get_highest_sql('song');
 $browse = new Browse();
 $browse->set_type('song', $sql);
 $browse->set_simple_browse(true);
-$browse->set_filter('catalog_filter', (string) $user->id);
+if ($filter) {
+    $browse->set_filter('catalog_filter', (string) $user->id);
+}
 $browse->show_objects();
 $browse->store();
 
@@ -33,7 +36,9 @@ $sql    = Rating::get_highest_sql('album');
 $browse = new Browse();
 $browse->set_type('album', $sql);
 $browse->set_simple_browse(true);
-$browse->set_filter('catalog_filter', (string) $user->id);
+if ($filter) {
+    $browse->set_filter('catalog_filter', (string) $user->id);
+}
 $browse->show_objects();
 $browse->store();
 
@@ -41,7 +46,9 @@ $sql    = Rating::get_highest_sql('artist');
 $browse = new Browse();
 $browse->set_type('artist', $sql);
 $browse->set_simple_browse(true);
-$browse->set_filter('catalog_filter', (string) $user->id);
+if ($filter) {
+    $browse->set_filter('catalog_filter', (string) $user->id);
+}
 $browse->show_objects();
 $browse->store();
 
@@ -50,7 +57,9 @@ if (AmpConfig::get('allow_video') && Video::get_item_count('Video')) {
     $browse = new Browse();
     $browse->set_type('video', $sql);
     $browse->set_simple_browse(true);
-    $browse->set_filter('catalog_filter', (string) $user->id);
+    if ($filter) {
+        $browse->set_filter('catalog_filter', (string) $user->id);
+    }
     $browse->show_objects();
     $browse->store();
 }
