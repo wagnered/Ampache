@@ -115,6 +115,7 @@
     if (is_array($object_ids)) {
         $browse = new Browse();
         $browse->set_type('song');
+        $browse->set_filter('catalog_filter', (string) $user->id);
         $browse->save_objects($object_ids);
         $browse->show_objects();
         $browse->store();

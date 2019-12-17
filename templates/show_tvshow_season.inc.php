@@ -96,6 +96,7 @@ UI::show_box_top($season->f_name . ' - ' . $season->f_tvshow_link, 'info-box'); 
     <div id="tabs_content">
         <div id="episodes" class="tab_content" style="display: block;">
 <?php
+    $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
     $browse->show_objects($object_ids, true);
     $browse->store(); ?>
         </div>

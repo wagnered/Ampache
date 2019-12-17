@@ -34,6 +34,7 @@ $browse     = new Browse();
 $browse->set_type($object_type);
 $browse->set_show_header(false);
 $browse->set_grid_view(false, false);
+$browse->set_filter('catalog_filter', (string) $user->id);
 $browse->show_objects($object_ids);
 UI::show_box_bottom();
  ?>
@@ -44,6 +45,7 @@ $browse     = new Browse();
 $browse->set_type($object_type);
 $browse->set_show_header(false);
 $browse->set_grid_view(false, false);
+$browse->set_filter('catalog_filter', (string) $user->id);
 $browse->show_objects($object_ids);
 UI::show_box_bottom(); ?>
 <a href="<?php echo AmpConfig::get('web_path') ?>/stats.php?action=popular"><?php UI::show_box_top(T_('Popular')) ?></a>
@@ -55,5 +57,6 @@ $browse     = new Browse();
 $browse->set_type($object_type);
 $browse->set_show_header(false);
 $browse->set_grid_view(false, false);
+$browse->set_filter('catalog_filter', (string) $user->id);
 $browse->show_objects($object_ids);
 UI::show_box_bottom();

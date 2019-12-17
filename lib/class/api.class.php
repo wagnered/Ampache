@@ -433,6 +433,7 @@ class Api
         self::$browse->reset_filters();
         self::$browse->set_type($type);
         self::$browse->set_sort('name', 'ASC');
+        self::$browse->set_filter('catalog_filter', (string) $user->id);
 
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         self::set_filter($method, $input['filter']);
@@ -529,9 +530,11 @@ class Api
      */
     public static function artists($input)
     {
+        $user = User::get_from_username(Session::username($input['auth']));
         self::$browse->reset_filters();
         self::$browse->set_type('artist');
         self::$browse->set_sort('name', 'ASC');
+        self::$browse->set_filter('catalog_filter', (string) $user->id);
 
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         self::set_filter($method, $input['filter']);
@@ -543,7 +546,6 @@ class Api
         XML_Data::set_limit($input['limit']);
 
         $artists = self::$browse->get_objects();
-        $user    = User::get_from_username(Session::username($input['auth']));
         // echo out the resulting xml document
         ob_end_clean();
         echo XML_Data::artists($artists, $input['include'], true, $user->id);
@@ -637,16 +639,18 @@ class Api
      */
     public static function albums($input)
     {
+        $user = User::get_from_username(Session::username($input['auth']));
         self::$browse->reset_filters();
         self::$browse->set_type('album');
         self::$browse->set_sort('name', 'ASC');
+        self::$browse->set_filter('catalog_filter', (string) $user->id);
+
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         self::set_filter($method, $input['filter']);
         self::set_filter('add', $input['add']);
         self::set_filter('update', $input['update']);
 
         $albums = self::$browse->get_objects();
-        $user   = User::get_from_username(Session::username($input['auth']));
 
         // Set the offset
         XML_Data::set_offset($input['offset']);
@@ -732,6 +736,7 @@ class Api
      */
     public static function tags($input)
     {
+        $user = User::get_from_username(Session::username($input['auth']));
         self::$browse->reset_filters();
         self::$browse->set_type('tag');
         self::$browse->set_sort('name', 'ASC');
@@ -858,9 +863,11 @@ class Api
      */
     public static function songs($input)
     {
+        $user = User::get_from_username(Session::username($input['auth']));
         self::$browse->reset_filters();
         self::$browse->set_type('song');
         self::$browse->set_sort('title', 'ASC');
+        self::$browse->set_filter('catalog_filter', (string) $user->id);
 
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         self::set_filter($method, $input['filter']);
@@ -870,7 +877,6 @@ class Api
         self::set_filter('enabled', '1');
 
         $songs = self::$browse->get_objects();
-        $user  = User::get_from_username(Session::username($input['auth']));
 
         // Set the offset
         XML_Data::set_offset($input['offset']);
@@ -1339,15 +1345,16 @@ class Api
         if (!self::check_parameter($input, array('filter'), 'videos')) {
             return false;
         }
+        $user = User::get_from_username(Session::username($input['auth']));
         self::$browse->reset_filters();
         self::$browse->set_type('video');
         self::$browse->set_sort('title', 'ASC');
+        self::$browse->set_filter('catalog_filter', (string) $user->id);
 
         $method = $input['exact'] ? 'exact_match' : 'alpha_match';
         Api::set_filter($method, $input['filter']);
 
         $video_ids = self::$browse->get_objects();
-        $user      = User::get_from_username(Session::username($input['auth']));
 
         XML_Data::set_offset($input['offset']);
         XML_Data::set_limit($input['limit']);

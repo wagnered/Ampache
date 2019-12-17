@@ -127,7 +127,8 @@ class Query
                 'regex_match',
                 'regex_not_match',
                 'catalog',
-                'catalog_enabled'
+                'catalog_enabled',
+                'catalog_filter'
             ),
             'artist' => array(
                 'add_lt',
@@ -141,7 +142,8 @@ class Query
                 'starts_with',
                 'tag',
                 'catalog',
-                'catalog_enabled'
+                'catalog_enabled',
+                'catalog_filter'
             ),
             'song' => array(
                 'add_lt',
@@ -156,6 +158,7 @@ class Query
                 'tag',
                 'catalog',
                 'catalog_enabled',
+                'catalog_filter',
                 'composer',
                 'enabled'
             ),
@@ -191,7 +194,8 @@ class Query
                 'exact_match',
                 'alpha_match',
                 'regex_match',
-                'regex_not_match'
+                'regex_not_match',
+                'catalog_filter'
             ),
             'license' => array(
                 'alpha_match',
@@ -1681,6 +1685,9 @@ class Query
                 break;
                 case 'starts_with':
                     $filter_sql = " `video`.`title` LIKE '" . Dba::escape($value) . "%' AND ";
+                break;
+                case 'catalog_filter':
+                        $filter_sql = " `video`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR filter_users IS NULL) AND ";
                 break;
                 default:
                     // Rien a faire

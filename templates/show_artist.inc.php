@@ -237,6 +237,7 @@ if (AmpConfig::get('sociable') && $owner_id > 0) {
         if (!empty($key)) {
             $browse->set_content_div_ak($key);
         }
+        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
         $browse->show_objects($object_ids, array('group_disks' => true, 'title' => $title));
         $browse->store();
     } ?>

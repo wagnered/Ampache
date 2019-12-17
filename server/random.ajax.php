@@ -106,6 +106,7 @@ switch ($_REQUEST['action']) {
         $browse->set_type('song');
         $browse->save_objects($object_ids);
         ob_start();
+        $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
         $browse->show_objects();
         $results['browse'] = ob_get_contents();
         ob_end_clean();
