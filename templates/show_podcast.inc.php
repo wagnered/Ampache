@@ -119,6 +119,9 @@ UI::show_box_top($podcast->f_title, 'info-box'); ?>
     <div id="tabs_content">
         <div id="episodes" class="tab_content" style="display: block;">
 <?php
+    if (AmpConfig::get('catalog_filter')) {
+        $browse->set_filter('catalog_filter', (string) $user->id);
+    }
     $browse->show_objects($object_ids, true);
     $browse->store(); ?>
         </div>

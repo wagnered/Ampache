@@ -1852,6 +1852,9 @@ class Query
                         $filter_sql = " `podcast`.`title` NOT REGEXP '" . Dba::escape($value) . "' AND ";
                     }
                 break;
+                case 'catalog_filter':
+                    $filter_sql = " (`podcast`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR filter_users IS NULL)) AND ";
+                break;
                 case 'starts_with':
                     $filter_sql = " `podcast`.`title` LIKE '" . Dba::escape($value) . "%' AND ";
                 break;
