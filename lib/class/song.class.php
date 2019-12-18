@@ -510,6 +510,9 @@ class Song extends database_object implements media, library_item
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
         $db_results = Dba::read($sql);
 
         $artists = array();
@@ -1981,6 +1984,9 @@ class Song extends database_object implements media, library_item
             "FROM `object_count` WHERE `object_type` = 'song' AND `count_type` = 'stream' ";
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND " . Catalog::get_enable_filter('song', '`object_id`') . " ";
+        }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
         }
         if ($user_id) {
             // If user is not empty, we're looking directly to user personal info (admin view)
