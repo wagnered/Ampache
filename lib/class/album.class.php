@@ -980,7 +980,7 @@ class Album extends database_object implements library_item
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sqlw .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
         }
 
         $sql .= "ORDER BY RAND()";
