@@ -51,6 +51,9 @@ class Random
                     " AND `rating`.`rating` <=" . $rating_filter .
                     " AND `rating`.`user` = " . $user_id . ")";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
         $sql .= "GROUP BY `artist`.`id` " .
                 "ORDER BY RAND() LIMIT 1";
         $db_results = Dba::read($sql);
@@ -130,6 +133,9 @@ class Random
                     " AND `rating`.`rating` <=" . $rating_filter .
                     " AND `rating`.`user` = " . $user_id . ")";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
         $sql .= "ORDER BY RAND() LIMIT $limit";
         $db_results = Dba::read($sql);
 
@@ -173,6 +179,9 @@ class Random
                     " (SELECT `object_id` FROM `user_flag`" .
                     " WHERE `user_flag`.`object_type` = '" . $type . "'" .
                     " AND `user_flag`.`user` = " . $user_id . ") ";
+        }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
         }
         $sql .= "ORDER BY RAND() LIMIT $limit";
         $db_results = Dba::read($sql);
@@ -224,6 +233,9 @@ class Random
                     " AND `rating`.`rating` <=" . $rating_filter .
                     " AND `rating`.`user` = " . $user_id . ")";
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+        }
         if (AmpConfig::get('album_group')) {
             $where_sql .= " GROUP BY `album`.`prefix`, `album`.`name`, `album`.`album_artist`, `album`.`release_type`, `album`.`mbid`, `album`.`year`";
         }
@@ -268,6 +280,9 @@ class Random
                     " WHERE `rating`.`object_type` = 'artist'" .
                     " AND `rating`.`rating` <=" . $rating_filter .
                     " AND `rating`.`user` = " . $user_id . ")";
+        }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
         }
         $sql .= "$where_sql ORDER BY RAND() LIMIT $limit";
         $db_results = Dba::read($sql);

@@ -362,8 +362,11 @@ class Live_Stream extends database_object implements media, library_item
             if (AmpConfig::get('catalog_disable')) {
                 $sql .= "AND ";
             }
-            $sql .= "`catalog`.`id` = ?";
+            $sql .= "`catalog`.`id` = ? ";
             $params[] = $catalog;
+        }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `live_stream`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
         }
         $db_results = Dba::read($sql, $params);
         $radios     = array();

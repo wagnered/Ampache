@@ -191,10 +191,18 @@ class Rating extends database_object
 
         if (AmpConfig::get('album_group') && $type === 'album') {
             $sql .= " LEFT JOIN `album` on `rating`.`object_id` = `album`.`id` and `rating`.`object_type` = 'album'";
+        } elseif ($type == 'song')  {
+            $sql .= " LEFT JOIN `" . $type . "` on `rating`.`object_id` = `" . $type . "`.`id` and `rating`.`object_type` = '" . $type . "'";
+        } else {
+            $sql .= " LEFT JOIN `song` on `rating`.`object_id` = `song`.`id` and `rating`.`object_type` = 'song'";
+            $sql .= " LEFT JOIN `" . $type . "` on `rating`.`object_id` = `" . $type . "`.`id` and `rating`.`object_type` = '" . $type . "'";
         }
         $sql .= " WHERE `object_type` = '" . $type . "'";
         if (AmpConfig::get('catalog_disable')) {
             $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
+        }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
         }
         if (AmpConfig::get('album_group') && $type === 'album') {
             $sql .= " GROUP BY `album`.`prefix`, `album`.`name`, `album`.`album_artist`, `album`.`release_type`, `album`.`mbid`, `album`.`year` ORDER BY `rating`, `object_id` DESC";  //TODO mysql8 test
