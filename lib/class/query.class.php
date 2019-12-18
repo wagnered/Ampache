@@ -1573,6 +1573,9 @@ class Query
                 case 'starts_with':
                     $filter_sql = " `live_stream`.`name` LIKE '" . Dba::escape($value) . "%' AND ";
                 break;
+                case 'catalog_filter':
+                    $filter_sql = " (`live_stream`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR filter_users IS NULL)) AND ";
+                break;
                 case 'catalog_enabled':
                     $this->set_join('left', '`catalog`', '`catalog`.`id`', '`live_stream`.`catalog`', 100);
                     $filter_sql = " `catalog`.`enabled` = '1' AND ";
