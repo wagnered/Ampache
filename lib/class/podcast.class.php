@@ -96,7 +96,7 @@ class Podcast extends database_object implements library_item
     {
         $params = array();
         $sql    = "SELECT `podcast_episode`.`id` FROM `podcast_episode` ";
-        if (AmpConfig::get('catalog_disable')) {
+        if (AmpConfig::get('catalog_disable') || AmpConfig::get('catalog_filter')) {
             $sql .= "LEFT JOIN `podcast` ON `podcast`.`id` = `podcast_episode`.`podcast` ";
             $sql .= "LEFT JOIN `catalog` ON `catalog`.`id` = `podcast`.`catalog` ";
         }
@@ -107,6 +107,9 @@ class Podcast extends database_object implements library_item
         }
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND `catalog`.`enabled` = '1' ";
+        }
+        if (AmpConfig::get('catalog_filter')) {
+            $sql .= "AND `podcast`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
         }
         $sql .= "ORDER BY `podcast_episode`.`pubdate` DESC";
         $db_results = Dba::read($sql, $params);
