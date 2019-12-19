@@ -106,10 +106,11 @@ if ($server === false)
 $channel->update_start($start_date, $address, $port, getmypid());
 echo T_("Listening on") . " " .$address . ':' . $port . "\n";
 
+stream_set_blocking($server, FALSE );
 $stream_clients = array();
 $client_socks = array();
 $last_stream = microtime(true);
-while(true)
+while($server)
 {
     //prepare readable sockets
     $read_socks = $client_socks;
@@ -285,6 +286,7 @@ while(true)
             debug_event('channel_run', 'No more data, stream ended.', 4);
             die('No more data, stream ended');
         }
+        stream_set_timeout($server, 30);
     }
 }
 
@@ -582,3 +584,4 @@ function strtohex($x) {
     }
     return($s);
 }
+

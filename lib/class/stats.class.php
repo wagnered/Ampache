@@ -551,7 +551,7 @@ class Stats
             }
             if ($allow_group_disks && $type == 'album') {
                 $sql .= "LEFT JOIN `album` ON `album`.`id` = `" . $base_type . "`.`album` ";
-            } elseif ($type == 'song')  {
+            } elseif ($type == 'song') {
                 $sql .= " LEFT JOIN `" . $type . "` on `rating`.`object_id` = `" . $type . "`.`id` and `rating`.`object_type` = '" . $type . "'";
             } else {
                 $sql .= " LEFT JOIN `song` on `rating`.`object_id` = `song`.`id` and `rating`.`object_type` = 'song'";
