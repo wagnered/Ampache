@@ -324,8 +324,8 @@ class Stats
                     " and `object_count`.`object_type` = 'album'";
         }
         if (in_array($type, array('song', 'album', 'artist'))) {
-            $sql .= " LEFT JOIN `song` on `object_count`.`id` = `song`.`$type`" .
-                    " and `object_count`.`object_type` = '$type'";
+            $sql .= " LEFT JOIN `song` on `object_count`.`id` = `song`.`" . $type . "`" .
+                    " and `object_count`.`object_type` = '" . $type . "'";
         }
         if ($user_id !== null) {
             $sql .= " WHERE `object_type` = '" . $type . "' AND `user` = " . $user_id . " ";
@@ -414,12 +414,16 @@ class Stats
         $ordersql = ($newest === true) ? 'DESC' : 'ASC';
         $user_sql = (!empty($user_id)) ? " AND `user` = '" . $user_id . "'" : '';
 
-        $sql = "SELECT DISTINCT(`object_id`) as `id`, MAX(`date`) FROM `object_count`" .
-                " WHERE `object_type` = '" . $type . "'" . $user_sql;
+        $sql = "SELECT DISTINCT(`object_id`) as `id`, MAX(`date`) FROM `object_count`";
+        if (in_array($type, array('song', 'album', 'artist'))) {
+            $sql .= " LEFT JOIN `song` on `object_count`.`id` = `song`.`" . $type . "`" .
+                    " and `object_count`.`object_type` = '" . $type . "'";
+        }
+        $sql .= " WHERE `object_type` = '" . $type . "'" . $user_sql;
         if (AmpConfig::get('catalog_disable')) {
             $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
         }
-        if (AmpConfig::get('catalog_filter')) {
+        if (AmpConfig::get('catalog_filter') && in_array($type, array('song', 'album', 'artist'))) {
             $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $rating_filter = AmpConfig::get_rating_filter();
@@ -580,7 +584,7 @@ class Stats
                         " AND `rating`.`user` = " . $user_id . ") ";
                 $multi_where = 'AND';
             }
-            if (AmpConfig::get('catalog_filter')) {
+            if (AmpConfig::get('catalog_filter') && in_array($type, array('song', 'album', 'artist'))) {
                 $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
             }
         }
