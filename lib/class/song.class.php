@@ -1991,8 +1991,8 @@ class Song extends database_object implements media, library_item
         $user_id = (int) ($user_id);
 
         $sql = "SELECT `object_id`, `user`, `object_type`, `date`, `agent`, `geo_latitude`, `geo_longitude`, `geo_name` " .
-            "FROM `object_count` WHERE `object_type` = 'song' AND `count_type` = 'stream' " .
-            "LEFT JOIN `song` ON `song`.`id` = `object_count`.`object_id` ";
+            "FROM `object_count` LEFT JOIN `song` ON `song`.`id` = `object_count`.`object_id` " .
+            "WHERE `object_type` = 'song' AND `count_type` = 'stream' ";
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND " . Catalog::get_enable_filter('song', '`object_id`') . " ";
         }
