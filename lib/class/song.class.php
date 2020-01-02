@@ -511,7 +511,7 @@ class Song extends database_object implements media, library_item
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $db_results = Dba::read($sql);
 
@@ -1991,12 +1991,13 @@ class Song extends database_object implements media, library_item
         $user_id = (int) ($user_id);
 
         $sql = "SELECT `object_id`, `user`, `object_type`, `date`, `agent`, `geo_latitude`, `geo_longitude`, `geo_name` " .
-            "FROM `object_count` WHERE `object_type` = 'song' AND `count_type` = 'stream' ";
+            "FROM `object_count` WHERE `object_type` = 'song' AND `count_type` = 'stream' " .
+            "LEFT JOIN `song` ON `song`.`id` = `object_count`.`object_id` ";
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "AND " . Catalog::get_enable_filter('song', '`object_id`') . " ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         if ($user_id) {
             // If user is not empty, we're looking directly to user personal info (admin view)

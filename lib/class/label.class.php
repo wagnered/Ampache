@@ -368,7 +368,7 @@ class Label extends database_object implements library_item
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= "ORDER BY `song`.`album`, `song`.`track`";
         $db_results = Dba::read($sql, array($this->name));

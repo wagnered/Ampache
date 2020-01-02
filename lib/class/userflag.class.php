@@ -308,7 +308,7 @@ class Userflag extends database_object
                 $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
             }
             if (AmpConfig::get('catalog_filter')) {
-                $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+                $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
             }
         }
         $sql .= " ORDER BY `user_flag`.`date` DESC ";

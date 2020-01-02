@@ -373,7 +373,7 @@ class Album extends database_object implements library_item
             $sqlw .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sqlw .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sqlw .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
 
         if ($this->allow_group_disks) {
@@ -592,7 +592,7 @@ class Album extends database_object implements library_item
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
 
         $sql .= "ORDER BY `song`.`track`, `song`.`title`";
@@ -676,7 +676,7 @@ class Album extends database_object implements library_item
             $catalog_where .= "AND `catalog`.`enabled` = '1'";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $catalog_where .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $catalog_where .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
 
         $sql = "SELECT DISTINCT `album`.`id`, `album`.`disk` FROM `album` LEFT JOIN `song` ON `song`.`album`=`album`.`id` $catalog_join " .
@@ -983,7 +983,7 @@ class Album extends database_object implements library_item
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
 
         $sql .= "ORDER BY RAND()";
@@ -1210,7 +1210,7 @@ class Album extends database_object implements library_item
             $where = "WHERE '1' = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $where .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $where .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
 
         if ($with_art) {

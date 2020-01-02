@@ -242,7 +242,7 @@ class Stats
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= "ORDER BY `object_count`.`date` DESC LIMIT 1";
         $db_results = Dba::read($sql, array($user_id));
@@ -274,7 +274,7 @@ class Stats
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= "ORDER BY `object_count`.`date` " . $order;
         $db_results = Dba::read($sql, array($user_id, $time));
@@ -332,7 +332,7 @@ class Stats
             $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $rating_filter = AmpConfig::get_rating_filter();
         if ($rating_filter > 0 && $rating_filter <= 5 && Core::get_global('user')) {
@@ -416,7 +416,7 @@ class Stats
             $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $rating_filter = AmpConfig::get_rating_filter();
         if ($rating_filter > 0 && $rating_filter <= 5 && !empty($user_id)) {
@@ -577,7 +577,7 @@ class Stats
                 $multi_where = 'AND';
             }
             if (AmpConfig::get('catalog_filter')) {
-                $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+                $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
             }
         }
         if ($allow_group_disks && $type == 'album') {
