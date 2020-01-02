@@ -567,11 +567,6 @@ class Stats
             }
             if ($allow_group_disks && $type == 'album') {
                 $sql .= "LEFT JOIN `album` ON `album`.`id` = `" . $base_type . "`.`album` ";
-            } elseif ($type == 'song') {
-                $sql .= " LEFT JOIN `" . $type . "` on `rating`.`object_id` = `" . $type . "`.`id` and `rating`.`object_type` = '" . $type . "'";
-            } else {
-                $sql .= " LEFT JOIN `song` on `rating`.`object_id` = `song`.`id` and `rating`.`object_type` = 'song'";
-                $sql .= " LEFT JOIN `" . $type . "` on `rating`.`object_id` = `" . $type . "`.`id` and `rating`.`object_type` = '" . $type . "'";
             }
             if (AmpConfig::get('catalog_disable')) {
                 $sql .= "LEFT JOIN `catalog` ON `catalog`.`id` = `" . $base_type . "`.`catalog` ";
