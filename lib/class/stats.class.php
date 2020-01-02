@@ -577,7 +577,7 @@ class Stats
                 $multi_where = 'AND';
             }
             if (AmpConfig::get('catalog_filter')) {
-                $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
+                $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR filter_users IS NULL) ";
             }
         }
         if ($allow_group_disks && $type == 'album') {
