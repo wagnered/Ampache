@@ -323,15 +323,19 @@ class Stats
             $sql .= " LEFT JOIN `album` on `album`.`id` = `object_count`.`object_id`" .
                     " and `object_count`.`object_type` = 'album'";
         }
+        if (in_array($type, array('song', 'album', 'artist'))) {
+            $sql .= " LEFT JOIN `song` on `object_count`.`id` = `song`.`$type`" .
+                    " and `object_count`.`object_type` = '$type'";
+        }
         if ($user_id !== null) {
-            $sql .= " WHERE `object_type` = '" . $type . "' AND `user` = " . $user_id;
+            $sql .= " WHERE `object_type` = '" . $type . "' AND `user` = " . $user_id . " ";
         } else {
             $sql .= " WHERE `object_type` = '" . $type . "' AND `date` >= '" . $date . "'";
         }
         if (AmpConfig::get('catalog_disable')) {
             $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
         }
-        if (AmpConfig::get('catalog_filter')) {
+        if (AmpConfig::get('catalog_filter') && in_array($type, array('song', 'album', 'artist'))) {
             $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $rating_filter = AmpConfig::get_rating_filter();
