@@ -323,7 +323,11 @@ class Stats
             $sql .= " LEFT JOIN `album` on `album`.`id` = `object_count`.`object_id`" .
                     " and `object_count`.`object_type` = 'album'";
         }
-        if (in_array($type, array('song', 'album', 'artist'))) {
+        if ($type == 'song') {
+            $sql .= " LEFT JOIN `song` on `object_count`.`id` = `song`.`id`" .
+                    " and `object_count`.`object_type` = '" . $type . "'";
+        }
+        if (in_array($type, array('album', 'artist'))) {
             $sql .= " LEFT JOIN `song` on `object_count`.`id` = `song`.`" . $type . "`" .
                     " and `object_count`.`object_type` = '" . $type . "'";
         }
@@ -415,7 +419,11 @@ class Stats
         $user_sql = (!empty($user_id)) ? " AND `user` = '" . $user_id . "'" : '';
 
         $sql = "SELECT DISTINCT(`object_id`) as `id`, MAX(`date`) FROM `object_count`";
-        if (in_array($type, array('song', 'album', 'artist'))) {
+        if ($type == 'song') {
+            $sql .= " LEFT JOIN `song` on `object_count`.`id` = `song`.`id`" .
+                    " and `object_count`.`object_type` = '" . $type . "'";
+        }
+        if (in_array($type, array('album', 'artist'))) {
             $sql .= " LEFT JOIN `song` on `object_count`.`id` = `song`.`" . $type . "`" .
                     " and `object_count`.`object_type` = '" . $type . "'";
         }
