@@ -1116,4 +1116,4 @@ class Video extends database_object implements media, library_item
 
         return 0;
     } // get_item_count
-} // end Video class
+} // end video.class

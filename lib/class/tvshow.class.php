@@ -442,4 +442,4 @@ class TVShow extends database_object implements library_item
 
         return $deleted;
     }
-} // end of tvshow class
+} // end tvshow.class

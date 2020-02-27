@@ -500,4 +500,4 @@ class Random
 
         return $sql;
     }
-} // end of random class
+} // end random.class
