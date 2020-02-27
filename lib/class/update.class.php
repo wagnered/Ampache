@@ -193,6 +193,7 @@ class Update
 
         $update_string = "* Add filter_users to catalog table<br />";
         $version[]     = array('version' => '400007', 'description' => $update_string);
+
         return $version;
     }
 
