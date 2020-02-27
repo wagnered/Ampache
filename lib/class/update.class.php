@@ -1081,5 +1081,5 @@ class Update
         $retval &= Dba::write($sql);
 
         return $retval;
-   }
+    }
 } // end update.class
