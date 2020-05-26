@@ -1165,7 +1165,7 @@ class Update
      *
      * Add filter_users to catalog table
      */
-    public static function update_400008()
+    public static function update_400010()
     {
         $retval = true;
         $sql    = "ALTER TABLE `catalog` ADD `filter_users` VARCHAR(255) NULL;";
