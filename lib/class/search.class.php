@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
@@ -19,6 +20,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+use Lib\Metadata\Repository\MetadataField;
 
 /**
  * Search Class
@@ -45,8 +48,11 @@ class Search extends playlist_object
 
     /**
      * constructor
+     * @param integer $search_id
+     * @param string $searchtype
+     * @param User $user
      */
-    public function __construct($search_id = null, $searchtype = 'song', $user = null)
+    public function __construct($search_id = 0, $searchtype = 'song', $user = null)
     {
         if ($user) {
             $this->search_user = $user;
@@ -54,7 +60,7 @@ class Search extends playlist_object
             $this->search_user = Core::get_global('user');
         }
         $this->searchtype = $searchtype;
-        if ($search_id) {
+        if ($search_id > 0) {
             $info = $this->get_info($search_id);
             foreach ($info as $key => $value) {
                 $this->$key = $value;
@@ -291,6 +297,18 @@ class Search extends playlist_object
             'name' => 'gt',
             'description' => T_('after (x) days ago'),
             'sql' => '>'
+        );
+
+        $this->basetypes['recent_added'][] = array(
+            'name' => 'add',
+            'description' => T_('# songs'),
+            'sql' => '`addition_time`'
+        );
+
+        $this->basetypes['recent_updated'][] = array(
+            'name' => 'upd',
+            'description' => T_('# songs'),
+            'sql' => '`update_time`'
         );
 
         $this->basetypes['user_numeric'][] = array(
@@ -695,6 +713,20 @@ class Search extends playlist_object
             'widget' => array('input', 'datetime-local')
         );
 
+        $this->types[] = array(
+            'name' => 'recent_added',
+            'label' => T_('Recently added'),
+            'type' => 'recent_added',
+            'widget' => array('input', 'number')
+        );
+
+        $this->types[] = array(
+            'name' => 'recent_updated',
+            'label' => T_('Recently updated'),
+            'type' => 'recent_updated',
+            'widget' => array('input', 'number')
+        );
+
         $catalogs = array();
         foreach (Catalog::get_catalogs() as $catid) {
             $catalog = Catalog::create_from_id($catid);
@@ -767,7 +799,7 @@ class Search extends playlist_object
         );
 
         $metadataFields          = array();
-        $metadataFieldRepository = new \Lib\Metadata\Repository\MetadataField();
+        $metadataFieldRepository = new MetadataField();
         foreach ($metadataFieldRepository->findAll() as $metadata) {
             $metadataFields[$metadata->getId()] = $metadata->getName();
         }
@@ -1142,8 +1174,8 @@ class Search extends playlist_object
      */
     public function delete()
     {
-        $search_id  = Dba::escape($this->id);
-        $sql        = "DELETE FROM `search` WHERE `id` = ?";
+        $search_id = Dba::escape($this->id);
+        $sql       = "DELETE FROM `search` WHERE `id` = ?";
         Dba::write($sql, array($search_id));
 
         return true;
@@ -1152,6 +1184,7 @@ class Search extends playlist_object
     /**
      * format
      * Gussy up the data
+     * @param boolean $details
      */
     public function format($details = true)
     {
@@ -1212,8 +1245,9 @@ class Search extends playlist_object
      */
     private function set_last_count($count)
     {
-        $sql = "Update `search` SET `last_count`=" . $count . " WHERE `id`=" . $this->id;
-        Dba::write($sql);
+        $search_id = Dba::escape($this->id);
+        $sql       = "Update `search` SET `last_count` = " . $count . " WHERE `id` = ?";
+        Dba::write($sql, array($search_id));
     }
 
     /**
@@ -1275,6 +1309,7 @@ class Search extends playlist_object
      *
      * Iterates over our array of types to find out the basetype for
      * the passed string.
+     * @param $name
      * @return string|false
      */
     public function name_to_basetype($name)
@@ -1303,8 +1338,9 @@ class Search extends playlist_object
                 $value = 'title';
             }
             if (preg_match('/^rule_(\d+)$/', $rule, $ruleID)) {
-                $ruleID = $ruleID[1];
-                foreach (explode('|', $data['rule_' . $ruleID . '_input']) as $input) {
+                $ruleID     = (string) $ruleID[1];
+                $input_rule = (string) $data['rule_' . $ruleID . '_input'];
+                foreach (explode('|', $input_rule) as $input) {
                     $this->rules[] = array(
                         $value,
                         $this->basetypes[$this->name_to_basetype($value)][$data['rule_' . $ruleID . '_operator']]['name'],
@@ -1327,7 +1363,8 @@ class Search extends playlist_object
     {
         // Make sure we have a unique name
         if (! $this->name) {
-            $this->name = Core::get_global('user')->username . ' - ' . date('Y-m-d H:i:s', time());
+            $time_format = AmpConfig::get('custom_datetime') ? (string) AmpConfig::get('custom_datetime') : 'm/d/Y H:i:s';
+            $this->name  = Core::get_global('user')->username . ' - ' . get_datetime($time_format, time());
         }
         $sql        = "SELECT `id` FROM `search` WHERE `name` = ?";
         $db_results = Dba::read($sql, array($this->name));
@@ -1398,6 +1435,9 @@ class Search extends playlist_object
         return $this->id;
     }
 
+    /**
+     * @return mixed|void
+     */
     public static function garbage_collection()
     {
     }
@@ -1411,6 +1451,7 @@ class Search extends playlist_object
      * @param array $data
      * @param string|false $type
      * @param array $operator
+     * @return array|bool|int|string|string[]|null
      */
     private function _mangle_data($data, $type, $operator)
     {
@@ -1887,6 +1928,8 @@ class Search extends playlist_object
             $raw_input          = $this->_mangle_data($rule[2], $type, $operator);
             $input              = filter_var($raw_input, FILTER_SANITIZE_STRING, FILTER_FLAG_NO_ENCODE_QUOTES);
             $sql_match_operator = $operator['sql'];
+            $addition_string    = '';
+            $update_string      = '';
 
             switch ($rule[0]) {
                 case 'anywhere':
@@ -2100,17 +2143,19 @@ class Search extends playlist_object
                     $subsql       = $subsearch->to_sql();
                     $results      = $subsearch->get_items();
                     $itemstring   = '';
-                    foreach ($results as $item) {
-                        $itemstring .= ' ' . $item['object_id'] . ',';
+                    if (count($results) > 0) {
+                        foreach ($results as $item) {
+                            $itemstring .= ' ' . $item['object_id'] . ',';
+                        }
+
+                        $where[]      = "$sql_match_operator `song`.`id` IN (" . substr($itemstring, 0, -1) . ")";
+                        // HACK: array_merge would potentially lose tags, since it
+                        // overwrites. Save our merged tag joins in a temp variable,
+                        // even though that's ugly.
+                        $tagjoin     = array_merge($subsql['join']['tag'], $join['tag']);
+                        $join        = array_merge($subsql['join'], $join);
+                        $join['tag'] = $tagjoin;
                     }
-                    
-                    $where[]      = "$sql_match_operator `song`.`id` IN (" . substr($itemstring, 0, -1) . ")";
-                    // HACK: array_merge would potentially lose tags, since it
-                    // overwrites. Save our merged tag joins in a temp variable,
-                    // even though that's ugly.
-                    $tagjoin     = array_merge($subsql['join']['tag'], $join['tag']);
-                    $join        = array_merge($subsql['join'], $join);
-                    $join['tag'] = $tagjoin;
                 break;
                 case 'license':
                     $where[] = "`song`.`license` $sql_match_operator '$input'";
@@ -2120,8 +2165,19 @@ class Search extends playlist_object
                     $where[] = "`song`.`addition_time` $sql_match_operator $input";
                 break;
                 case 'updated':
-                    $input   = strtotime($input);
-                    $where[] = "`song`.`update_time` $sql_match_operator $input";
+                    $update_string = '';
+                    $input         = strtotime($input);
+                    $where[]       = "`song`.`update_time` $sql_match_operator $input";
+                    break;
+                case 'recent_added':
+                    $where[]          = "`addition_time`.`id` IS NOT NULL";
+                    $addition_string  = "LEFT JOIN (SELECT `id` from `song` ORDER BY $sql_match_operator DESC LIMIT $input) as `addition_time` ON `song`.`id` = `addition_time`.`id`";
+                    $join['addition'] = true;
+                    break;
+                case 'recent_updated':
+                    $where[]        = "`update_time`.`id` IS NOT NULL";
+                    $update_string  = "LEFT JOIN (SELECT `id` from `song` ORDER BY $sql_match_operator DESC LIMIT $input) as `update_time` ON `song`.`id` = `update_time`.`id`";
+                    $join['update'] = true;
                     break;
                 case 'metadata':
                     // Need to create a join for every field so we can create and / or queries with only one table
@@ -2235,13 +2291,13 @@ class Search extends playlist_object
                     "`object_count` ON `object_count`.`object_id`=`song`.`id`";
         }
         if ($join['object_count_album']) {
-            $table['object_count'] = "LEFT JOIN (SELECT `object_count`.`object_id`, MAX(`object_count`.`date`) AS " .
+            $table['object_count_album'] = "LEFT JOIN (SELECT `object_count`.`object_id`, MAX(`object_count`.`date`) AS " .
                     "`date` FROM `object_count` WHERE `object_count`.`object_type` = 'album' AND " .
                     "`object_count`.`user`='" . $userid . "' AND `object_count`.`count_type` = 'stream' GROUP BY `object_count`.`object_id`) AS " .
                     "`object_count_album` ON `object_count_album`.`object_id`=`album`.`id`";
         }
         if ($join['object_count_artist']) {
-            $table['object_count'] = "LEFT JOIN (SELECT `object_count`.`object_id`, MAX(`object_count`.`date`) AS " .
+            $table['object_count_artist'] = "LEFT JOIN (SELECT `object_count`.`object_id`, MAX(`object_count`.`date`) AS " .
                     "`date` FROM `object_count` WHERE `object_count`.`object_type` = 'artist' AND " .
                     "`object_count`.`user`='" . $userid . "' AND `object_count`.`count_type` = 'stream' GROUP BY `object_count`.`object_id`) AS " .
                     "`object_count_artist` ON `object_count_artist`.`object_id`=`artist`.`id`";
@@ -2252,7 +2308,12 @@ class Search extends playlist_object
                 $table['playlist'] = "LEFT JOIN `playlist` ON `playlist_data`.`playlist`=`playlist`.`id`";
             }
         }
-
+        if ($join['addition']) {
+            $table['addition'] = $addition_string;
+        }
+        if ($join['update']) {
+            $table['update'] = $update_string;
+        }
         if ($join['catalog']) {
             $table['catalog'] = "LEFT JOIN `catalog` AS `catalog_se` ON `catalog_se`.`id`=`song`.`catalog`";
             if (!empty($where_sql)) {
@@ -2534,6 +2595,10 @@ class Search extends playlist_object
      * year_search
      *
      * Build search rules for year -> year searching.
+     * @param $fromYear
+     * @param $toYear
+     * @param $size
+     * @param $offset
      * @return array
      */
     public static function year_search($fromYear, $toYear, $size, $offset)

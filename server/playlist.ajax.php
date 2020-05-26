@@ -66,7 +66,8 @@ switch ($_REQUEST['action']) {
 
             $name        = $_REQUEST['name'];
             if (empty($name)) {
-                $name = Core::get_global('user')->username . ' - ' . date("Y-m-d H:i:s", time());
+                $time_format = AmpConfig::get('custom_datetime') ? (string) AmpConfig::get('custom_datetime') : 'm/d/Y H:i';
+                $name        = Core::get_global('user')->username . ' - ' . get_datetime($time_format, time());
             }
             $playlist_id = Playlist::create($name, 'private');
             if ($playlist_id === null) {
@@ -99,7 +100,7 @@ switch ($_REQUEST['action']) {
 
         if (count($medias) > 0) {
             Ajax::set_include_override(true);
-            $playlist->add_medias($medias, true);
+            $playlist->add_medias($medias);
 
             debug_event('playlist.ajax', 'Items added successfully!', 5);
             ob_start();

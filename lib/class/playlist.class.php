@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
@@ -44,6 +45,7 @@ class Playlist extends playlist_object
      * Constructor
      * This takes a playlist_id as an optional argument and gathers the information
      * if not playlist_id is passed returns false (or if it isn't found
+     * @param $object_id
      */
     public function __construct($object_id)
     {
@@ -74,17 +76,14 @@ class Playlist extends playlist_object
      */
     public static function build_cache($ids)
     {
-        if (!count($ids)) {
-            return false;
-        }
+        if (count($ids)) {
+            $idlist     = '(' . implode(',', $ids) . ')';
+            $sql        = "SELECT * FROM `playlist` WHERE `id` IN $idlist";
+            $db_results = Dba::read($sql);
 
-        $idlist = '(' . implode(',', $ids) . ')';
-
-        $sql        = "SELECT * FROM `playlist` WHERE `id` IN $idlist";
-        $db_results = Dba::read($sql);
-
-        while ($row = Dba::fetch_assoc($db_results)) {
-            parent::add_to_cache('playlist', $row['id'], $row);
+            while ($row = Dba::fetch_assoc($db_results)) {
+                parent::add_to_cache('playlist', $row['id'], $row);
+            }
         }
     } // build_cache
 
@@ -204,23 +203,24 @@ class Playlist extends playlist_object
         $this->link   = AmpConfig::get('web_path') . '/playlist.php?action=show_playlist&playlist_id=' . $this->id;
         $this->f_link = '<a href="' . $this->link . '">' . $this->f_name . '</a>';
 
-        $this->f_date        = $this->date ? date('d/m/Y h:i', (int) $this->date) : T_('Unknown');
-        $this->f_last_update = $this->last_update ? date('d/m/Y h:i', (int) $this->last_update) : T_('Unknown');
+        $time_format         = AmpConfig::get('custom_datetime') ? (string) AmpConfig::get('custom_datetime') : 'm/d/Y H:i';
+        $this->f_date        = $this->date ? get_datetime($time_format, (int) $this->date) : T_('Unknown');
+        $this->f_last_update = $this->last_update ? get_datetime($time_format, (int) $this->last_update) : T_('Unknown');
     } // format
 
     /**
      * get_track
      * Returns the single item on the playlist and all of it's information, restrict
      * it to this Playlist
+     * @param $track_id
+     * @return array
      */
     public function get_track($track_id)
     {
         $sql        = "SELECT * FROM `playlist_data` WHERE `id` = ? AND `playlist` = ?";
         $db_results = Dba::read($sql, array($track_id, $this->id));
 
-        $row = Dba::fetch_assoc($db_results);
-
-        return $row;
+        return Dba::fetch_assoc($db_results);
     } // get_track
 
     /**
@@ -252,7 +252,7 @@ class Playlist extends playlist_object
     /**
      * get_random_items
      * This is the same as before but we randomize the buggers!
-     * @param integer $limit
+     * @param string $limit
      * @return integer[]
      */
     public function get_random_items($limit = '')
@@ -339,6 +339,7 @@ class Playlist extends playlist_object
      * get_users
      * This returns the specified users playlists as an array of playlist ids
      * @param integer $user_id
+     * @return array
      */
     public static function get_users($user_id)
     {
@@ -412,7 +413,9 @@ class Playlist extends playlist_object
      * _update_item
      * This is the generic update function, it does the escaping and error checking
      * @param string $field
+     * @param $value
      * @param integer $level
+     * @return bool|PDOStatement
      */
     private function _update_item($field, $value, $level)
     {
@@ -421,9 +424,8 @@ class Playlist extends playlist_object
         }
 
         $sql        = "UPDATE `playlist` SET `$field` = ? WHERE `id` = ?";
-        $db_results = Dba::write($sql, array($value, $this->id));
 
-        return $db_results;
+        return Dba::write($sql, array($value, $this->id));
     } // update_item
 
     /**
@@ -468,40 +470,32 @@ class Playlist extends playlist_object
                 'object_id' => $song_id,
             );
         }
-        $this->add_medias($medias, $ordered);
+        $this->add_medias($medias);
     } // add_songs
 
     /**
      * add_medias
      * @param array $medias
-     * @param boolean $ordered
      */
-    public function add_medias($medias, $ordered = false)
+    public function add_medias($medias)
     {
         /* We need to pull the current 'end' track and then use that to
          * append, rather then integrate take end track # and add it to
          * $song->track add one to make sure it really is 'next'
          */
-        $sql        = "SELECT `track` FROM `playlist_data` WHERE `playlist` = ? ORDER BY `track` DESC LIMIT 1";
-        $db_results = Dba::read($sql, array($this->id));
-        $track_data = Dba::fetch_assoc($db_results);
-        $base_track = $track_data['track'] ?: 0;
-        debug_event('playlist.class', 'Adding Media; Track number: ' . $base_track, 5);
-
-        $count = 0;
+        $playlist   = new Playlist($this->id);
+        $track_data = $playlist->get_songs();
+        $base_track = count($track_data);
+        $count      = 0;
         foreach ($medias as $data) {
             $media = new $data['object_type']($data['object_id']);
-
-            // Based on the ordered prop we use track + base or just $count++
-            if (!$ordered && $data['object_type'] == 'song') {
-                $track    = $media->track + $base_track;
-            } else {
+            if (AmpConfig::get('unique_playlist') && in_array($media->id, $track_data)) {
+                debug_event('playlist.class', "Can't add a duplicate " . $data['object_type'] . " (" . $data['object_id'] . ") when unique_playlist is enabled", 3);
+            } elseif ($media->id) {
                 $count++;
                 $track = $base_track + $count;
-            }
+                debug_event('playlist.class', 'Adding Media; Track number: ' . $track, 5);
 
-            /* Don't insert dead media */
-            if ($media->id) {
                 $sql = "INSERT INTO `playlist_data` (`playlist`, `object_id`, `object_type`, `track`) " .
                     " VALUES (?, ?, ?, ?)";
                 Dba::write($sql, array($this->id, $data['object_id'], $data['object_type'], $track));
@@ -517,6 +511,8 @@ class Playlist extends playlist_object
      * @param string $name
      * @param string $type
      * @param integer $user_id
+     * @param integer $date
+     * @return string|null
      */
     public static function create($name, $type, $user_id = null, $date = null)
     {
@@ -544,9 +540,7 @@ class Playlist extends playlist_object
         $sql = "INSERT INTO `playlist` (`name`, `user`, `type`, `date`, `last_update`) VALUES (?, ?, ?, ?, ?)";
         Dba::write($sql, array($name, $user_id, $type, $date, $date));
 
-        $insert_id = Dba::insert_id();
-
-        return $insert_id;
+        return Dba::insert_id();
     } // create
 
     /**
@@ -562,6 +556,7 @@ class Playlist extends playlist_object
      * delete_song
      * @param integer $object_id
      * this deletes a single track, you specify the playlist_data.id here
+     * @return boolean
      */
     public function delete_song($object_id)
     {
@@ -576,8 +571,9 @@ class Playlist extends playlist_object
 
     /**
      * delete_track
-    * @param integer $item_id
+     * @param integer $item_id
      * this deletes a single track, you specify the playlist_data.id here
+     * @return boolean
      */
     public function delete_track($item_id)
     {
@@ -591,10 +587,11 @@ class Playlist extends playlist_object
     } // delete_track
 
     /**
-    * delete_track_number
-    * @param integer $track
-    * this deletes a single track by it's track #, you specify the playlist_data.track here
-    */
+     * delete_track_number
+     * @param integer $track
+     * this deletes a single track by it's track #, you specify the playlist_data.track here
+     * @return boolean
+     */
     public function delete_track_number($track)
     {
         $sql = "DELETE FROM `playlist_data` WHERE `playlist_data`.`playlist` = ? AND `playlist_data`.`track` = ? LIMIT 1";
