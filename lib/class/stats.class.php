@@ -268,7 +268,8 @@ class Stats
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string)Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+        }
         if (!$agent === '') {
             $sql .= "AND `object_count`.`agent` = ? ";
             array_push($sqlres, $agent);
