@@ -1338,4 +1338,32 @@ class Update
 
         return $retval;
     }
+
+    /**
+     * update_400019
+     *
+     * Extend video bitrate to unsigned. There's no reason for a negative bitrate.
+     */
+    public static function update_400019()
+    {
+        $retval    = true;
+        $sql    = "ALTER TABLE `catalog` ADD `filter_users` VARCHAR(255) NULL;";
+        $retval &= Dba::write($sql);
+
+        $tables    = [ 'cache_object_catalog', 'cache_object_catalog_run' ];
+        $collation = (AmpConfig::get('database_collation', 'utf8_unicode_ci'));
+        $charset   = (AmpConfig::get('database_charset', 'utf8'));
+        $engine    = ($charset == 'utf8mb4') ? 'InnoDB' : 'MYISAM';
+        foreach ($tables as $table) {
+            $sql = "CREATE TABLE IF NOT EXISTS `" . $table . "` (" .
+                "`object_id` int(11) unsigned NOT NULL," .
+                "`object_type` enum('album','artist','song','playlist','genre','catalog','live_stream','video','podcast_episode') CHARACTER SET utf8 NOT NULL," .
+                "`catalog` int(11) unsigned NOT NULL DEFAULT '0'," .
+                "PRIMARY KEY (`object_id`, `object_type`, `catalog`)" .
+                ") ENGINE=$engine DEFAULT CHARSET=$charset COLLATE=$collation;";
+            $retval &= Dba::write($sql);
+        }
+
+        return $retval;
+    }
 } // end update.class

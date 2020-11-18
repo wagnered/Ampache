@@ -7,7 +7,7 @@
 ; if this config file is up to date
 ; this is compared against a value hard-coded
 ; into the init script
-config_version = 47
+config_version = 48
 
 ; Allow you to hard code a default git branch for Ampache
 ; If you set this value the inbuilt updater will use this branch for updates.
@@ -300,6 +300,13 @@ catalog_prefix_pattern = "The|An|A|Die|Das|Ein|Eine|Les|Le|La"
 ; WARNING: this increase sensibly sql requests and slow down Ampache a lot
 ; DEFAULT: "false"
 ;catalog_disable = "false"
+
+; Catalog filter
+; This defines if catalog can be filtered per user.
+; The filters are set in the catalog management pages.
+; WARNING: this increase sensibly sql requests and slow down Ampache a lot
+; DEFAULT: false
+;catalog_filter = "false"
 
 ; Delete from disk
 ; This determines if catalog manager users can delete media from disk.
@@ -1257,3 +1264,4 @@ send_full_stream = "webplayer"
 ; For file name parsing. Any unnecessary abbreviations in file names can be removed during parsing
 ; by adding them to the list below so that they will be removed during the parsing process.
 common_abbr = "divx,xvid,dvdrip,hdtv,lol,axxo,repack,xor,pdtv,real,vtv,caph,2hd,proper,fqm,uncut,topaz,tvt,notv,fpn,fov,orenji,0tv,omicron,dsr,ws,sys,crimson,wat,hiqt,internal,brrip,boheme,vost,vostfr,fastsub,addiction,x264,LOL,720p,1080p,YIFY,evolve,fihtv,first,bokutox,bluray,tvboom,info"
+

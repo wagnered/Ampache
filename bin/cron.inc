@@ -32,7 +32,7 @@ require_once $a_root . '/lib/init.php';
 
 ob_end_flush();
 
-if (!AmpConfig::get('cron_cache')) {
+if (!AmpConfig::get('cron_cache') ) {
     debug_event('cron.inc', 'ENABLE \'Cache computed SQL data (eg. media hits stats) using a cron\'\n * In Admin -> Server Config -> System -> Catalog\n', 5);
 
     return false;
@@ -53,7 +53,6 @@ debug_event('cron', 'started cron process', 3);
  * Userflag::garbage_collection();
  * Useractivity::garbage_collection();
  * Playlist::garbage_collection();
- * Tmp_Playlist::garbage_collection(); FIXME Duplicated with Session
  * Shoutbox::garbage_collection();
  * Tag::garbage_collection();
  * Metadata::garbage_collection();
@@ -67,7 +66,7 @@ Catalog::garbage_collection();
  * Query::garbage_collection();
  * Stream_Playlist::garbage_collection();
  * Song_Preview::garbage_collection();
- * Tmp_Playlist::garbage_collection(); FIXME Duplicated with Catalog
+ * Tmp_Playlist::garbage_collection();
  */
 Session::garbage_collection();
 
@@ -83,7 +82,6 @@ Recommendation::garbage_collection();
 /**
  * Run compute_cache
  */
-$a_root = realpath(__DIR__ . "/../");
 require_once $a_root . '/bin/compute_cache.inc';
 
 // mark the date this cron was completed.
