@@ -31,6 +31,12 @@ require_once $a_root . '/lib/init.php';
 // Turn off output buffering we don't need it for a command line script
 ob_end_clean();
 
+if (!AmpConfig::get('cron_cache') ) {
+    debug_event('compute_cache', 'ENABLE \'Cache computed SQL data (eg. media hits stats) using a cron\'\n * In Admin -> Server Config -> System -> Catalog\n', 5);
+
+    return false;
+}
+
 debug_event('compute_cache', 'started cache process', 5);
 
 $thresholds   = [ 0, AmpConfig::get('stats_threshold'), AmpConfig::get('popular_threshold', 10) ];
@@ -54,36 +60,37 @@ Dba::write($sql);
 $sql = "TRUNCATE `cache_object_count_run`";
 Dba::write($sql);
 
-debug_event('compute_cache', 'started cache_catalog process.', 3);
-$object_types = [ 'album', 'artist', 'song' ];
+if (!AmpConfig::get('catalog_filter') ) {
+    debug_event('compute_cache', 'started cache_catalog process.', 3);
+    $object_types = [ 'album', 'artist', 'song' ];
 
-// song, artist and album tables
-foreach ($object_types as $object_type) {
-    $sql = "INSERT IGNORE INTO `cache_object_catalog_run` ( `object_id`, `object_type`, `catalog` ) " .
-           "SELECT `$object_type`.`id`, '$object_type', `song`.`catalog` FROM `$object_type` ";
-    if ($object_type !== 'song') {
-        $sql .= "LEFT JOIN `song` ON `$object_type`.`id` = `song`.`$object_type`";
+    // song, artist and album tables
+    foreach ($object_types as $object_type) {
+        $sql = "INSERT IGNORE INTO `cache_object_catalog_run` ( `object_id`, `object_type`, `catalog` ) " .
+               "SELECT `$object_type`.`id`, '$object_type', `song`.`catalog` FROM `$object_type` ";
+        if ($object_type !== 'song') {
+            $sql .= "LEFT JOIN `song` ON `$object_type`.`id` = `song`.`$object_type`";
+        }
+        Dba::write($sql);
     }
+    // video table
+    $sql = "INSERT IGNORE INTO `cache_object_catalog_run` ( `object_id`, `object_type`, `catalog` ) " .
+           "SELECT `video`.`id`, 'video', `video`.`catalog` FROM `video` ";
+    Dba::write($sql);
+
+    // podcast
+    $sql = "INSERT IGNORE INTO `cache_object_catalog_run` ( `object_id`, `object_type`, `catalog` ) " .
+           "SELECT `podcast`.`id`, 'podcast', `podcast`.`catalog` FROM `podcast` ";
+
+    // podcast_episode table
+    $sql = "INSERT IGNORE INTO `cache_object_catalog_run` ( `object_id`, `object_type`, `catalog` ) " .
+           "SELECT `podcast_episode`.`id`, 'podcast_episode', `podcast`.`catalog` FROM `podcast_episode` " .
+           "LEFT JOIN `podcast` ON `podcast`.`id` = `podcast_episode`.`podcast`";
+    Dba::write($sql);
+
+    $sql = "RENAME TABLE `cache_object_catalog_run` TO `cache_object_catalog_tmp`, `cache_object_catalog` TO `cache_object_catalog_run`, `cache_object_catalog_tmp` TO `cache_object_catalog`";
+    Dba::write($sql);
+    $sql = "TRUNCATE `cache_object_catalog_run`";
     Dba::write($sql);
 }
-// video table
-$sql = "INSERT IGNORE INTO `cache_object_catalog_run` ( `object_id`, `object_type`, `catalog` ) " .
-       "SELECT `video`.`id`, 'video', `video`.`catalog` FROM `video` ";
-Dba::write($sql);
-
-// podcast
-$sql = "INSERT IGNORE INTO `cache_object_catalog_run` ( `object_id`, `object_type`, `catalog` ) " .
-       "SELECT `podcast`.`id`, 'podcast', `podcast`.`catalog` FROM `podcast` ";
-
-// podcast_episode table
-$sql = "INSERT IGNORE INTO `cache_object_catalog_run` ( `object_id`, `object_type`, `catalog` ) " .
-       "SELECT `podcast_episode`.`id`, 'podcast_episode', `podcast`.`catalog` FROM `podcast_episode` " .
-       "LEFT JOIN `podcast` ON `podcast`.`id` = `podcast_episode`.`podcast`";
-Dba::write($sql);
-
-$sql = "RENAME TABLE `cache_object_catalog_run` TO `cache_object_catalog_tmp`, `cache_object_catalog` TO `cache_object_catalog_run`, `cache_object_catalog_tmp` TO `cache_object_catalog`";
-Dba::write($sql);
-$sql = "TRUNCATE `cache_object_catalog_run`";
-Dba::write($sql);
-
 debug_event('compute_cache', 'completed cache process', 4);

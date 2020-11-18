@@ -1346,7 +1346,7 @@ class Update
      */
     public static function update_400019()
     {
-        $retval    = true;
+        $retval = true;
         $sql    = "ALTER TABLE `catalog` ADD `filter_users` VARCHAR(255) NULL;";
         $retval &= Dba::write($sql);
 
