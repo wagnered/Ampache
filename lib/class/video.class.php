@@ -3,7 +3,7 @@ declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@ declare(strict_types=0);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -243,9 +243,9 @@ class Video extends database_object implements media, library_item
      * @param integer[] $ids
      * @return boolean
      */
-    public static function build_cache($ids = array())
+    public static function build_cache($ids)
     {
-        if (!count($ids)) {
+        if (empty($ids)) {
             return false;
         }
 
@@ -303,8 +303,7 @@ class Video extends database_object implements media, library_item
         $this->f_length = floor($this->time / 60) . ' ' . T_('minutes');
         $this->f_file   = $this->f_title . '.' . $this->type;
         if ($this->release_date) {
-            $time_format          = AmpConfig::get('custom_datetime') ? preg_replace("/[^dmY\s]/", "", (string) AmpConfig::get('custom_datetime')) : "m-d-Y";
-            $this->f_release_date = get_datetime($time_format, (int) $this->release_date);
+            $this->f_release_date = get_datetime((int) $this->release_date, 'short', 'none');
         }
     } // format
 
@@ -392,7 +391,7 @@ class Video extends database_object implements media, library_item
 
     /**
      * Get item's owner.
-     * @return int|null
+     * @return integer|null
      */
     public function get_user_owner()
     {
@@ -417,9 +416,9 @@ class Video extends database_object implements media, library_item
     }
 
     /**
+     * display_art
      * @param integer $thumb
      * @param boolean $force
-     * @return mixed|void
      */
     public function display_art($thumb = 2, $force = false)
     {
@@ -435,6 +434,9 @@ class Video extends database_object implements media, library_item
      */
     public static function garbage_collection()
     {
+        // clean up missing catalogs
+        Dba::write("DELETE FROM `video` WHERE `video`.`catalog` NOT IN (SELECT `id` FROM `catalog`)");
+        // clean up sub-tables of videos
         Movie::garbage_collection();
         TVShow_Episode::garbage_collection();
         TVShow_Season::garbage_collection();
@@ -457,20 +459,20 @@ class Video extends database_object implements media, library_item
      * play_url
      * This returns a "PLAY" url for the video in question here, this currently feels a little
      * like a hack, might need to adjust it in the future
-     * @param integer $oid
+     * @param integer $object_id
      * @param string $additional_params
      * @param string $player
      * @param boolean $local
      * @param integer $uid
      * @return string
      */
-    public static function play_url($oid, $additional_params = '', $player = '', $local = false, $uid = false)
+    public static function play_url($object_id, $additional_params = '', $player = '', $local = false, $uid = false)
     {
         if (!$uid) {
             $uid = Core::get_global('user')->id;
         }
 
-        return Song::generic_play_url('video', $oid, $additional_params, $player, $local, $uid);
+        return Song::generic_play_url('video', $object_id, $additional_params, $player, $local, $uid);
     }
 
     /**
@@ -572,27 +574,27 @@ class Video extends database_object implements media, library_item
      */
     public static function insert(array $data, $gtypes = array(), $options = array())
     {
-        $bitrate        = (int) ($data['bitrate']);
+        $bitrate        = (int) $data['bitrate'];
         $mode           = $data['mode'];
-        $rezx           = (int) ($data['resolution_x']);
-        $rezy           = (int) ($data['resolution_y']);
-        $release_date   = (int) ($data['release_date']);
+        $rezx           = (int) $data['resolution_x'];
+        $rezy           = (int) $data['resolution_y'];
+        $release_date   = (int) $data['release_date'];
         // No release date, then release date = production year
         if (!$release_date && $data['year']) {
             $release_date = strtotime(strval($data['year']) . '-01-01');
         }
         $tags           = $data['genre'];
-        $channels       = (int) ($data['channels']);
-        $disx           = (int) ($data['display_x']);
-        $disy           = (int) ($data['display_y']);
-        $frame_rate     = floatval($data['frame_rate']);
-        $video_bitrate  = (int) ($data['video_bitrate']);
+        $channels       = (int) $data['channels'];
+        $disx           = (int) $data['display_x'];
+        $disy           = (int) $data['display_y'];
+        $frame_rate     = (float) $data['frame_rate'];
+        $video_bitrate  = (int) Catalog::check_int($data['video_bitrate'], 4294967294, 0);
 
         $sql = "INSERT INTO `video` (`file`, `catalog`, `title`, `video_codec`, `audio_codec`, `resolution_x`, `resolution_y`, `size`, `time`, `mime`, `release_date`, `addition_time`, `bitrate`, `mode`, `channels`, `display_x`, `display_y`, `frame_rate`, `video_bitrate`) " .
             " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $params = array($data['file'], $data['catalog'], $data['title'], $data['video_codec'], $data['audio_codec'], $rezx, $rezy, $data['size'], $data['time'], $data['mime'], $release_date, time(), $bitrate, $mode, $channels, $disx, $disy, $frame_rate, $video_bitrate);
         Dba::write($sql, $params);
-        $vid = Dba::insert_id();
+        $vid = (int) Dba::insert_id();
 
         if (is_array($tags)) {
             foreach ($tags as $tag) {
@@ -730,7 +732,7 @@ class Video extends database_object implements media, library_item
             $count = 1;
         }
 
-        $sql   = "SELECT DISTINCT(`video`.`id`) FROM `video` ";
+        $sql   = "SELECT DISTINCT(`video`.`id`) AS `id` FROM `video` ";
         $where = "WHERE `video`.`enabled` = '1' ";
         if (AmpConfig::get('catalog_disable')) {
             $sql .= "LEFT JOIN `catalog` ON `catalog`.`id` = `video`.`catalog` ";
@@ -758,11 +760,16 @@ class Video extends database_object implements media, library_item
      * @param integer $user
      * @param string $agent
      * @param array $location
+     * @param integer $date
      * @return boolean
      */
-    public function set_played($user, $agent, $location)
+    public function set_played($user, $agent, $location, $date = null)
     {
-        Stats::insert('video', $this->id, $user, $agent, $location);
+        // ignore duplicates or skip the last track
+        if (!$this->check_play_history($user, $agent, $date)) {
+            return false;
+        }
+        Stats::insert('video', $this->id, $user, $agent, $location, 'stream', $date);
 
         if ($this->played) {
             return true;
@@ -775,14 +782,14 @@ class Video extends database_object implements media, library_item
     } // set_played
 
     /**
-     * @param $user
-     * @param $agent
-     * @return mixed|void
+     * @param integer $user
+     * @param string $agent
+     * @param integer $date
+     * @return boolean
      */
-    public function check_play_history($user, $agent)
+    public function check_play_history($user, $agent, $date)
     {
-        unset($user, $agent);
-        // Do nothing
+        return Stats::has_played_history($this, $user, $agent, $date);
     }
 
     /**
@@ -800,7 +807,7 @@ class Video extends database_object implements media, library_item
         // Remove some stuff we don't care about
         unset($video->catalog, $video->played, $video->enabled, $video->addition_time, $video->update_time, $video->type);
         $string_array = array('title', 'tags');
-        $skip_array   = array('id', 'tag_id', 'mime', 'object_cnt');
+        $skip_array   = array('id', 'tag_id', 'mime', 'object_cnt', 'disabledMetadataFields');
 
         return Song::compare_media_information($video, $new_video, $string_array, $skip_array);
     } // compare_video_information

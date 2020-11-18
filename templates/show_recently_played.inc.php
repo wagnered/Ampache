@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,12 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
-$link = AmpConfig::get('use_rss') ? ' ' . Ampache_RSS::get_display('recently_played') :  '';
+$my_id = (isset($client)) ? $user_id : $user->id;
+$link  = AmpConfig::get('use_rss') ? ' ' . Ampache_RSS::get_display('recently_played', $my_id) :  '';
 UI::show_box_top(T_('Recently Played') . $link, 'box box_recently_played'); ?>
 <table class="tabledata">
     <thead>
@@ -29,7 +30,7 @@ UI::show_box_top(T_('Recently Played') . $link, 'box box_recently_played'); ?>
             <th class="cel_song"><?php echo T_('Song'); ?></th>
             <th class="cel_add"></th>
             <th class="cel_album"><?php echo T_('Album'); ?></th>
-            <th class="cel_artist"><?php echo T_('Artist'); ?></th>
+            <th class="cel_artist"><?php echo T_('Song Artist'); ?></th>
             <th class="cel_year"><?php echo T_('Year'); ?></th>
             <th class="cel_username"><?php echo T_('Username'); ?></th>
             <th class="cel_lastplayed"><?php echo T_('Last Played'); ?></th>
@@ -37,7 +38,7 @@ UI::show_box_top(T_('Recently Played') . $link, 'box box_recently_played'); ?>
     </thead>
     <tbody>
 <?php
-$nb = 0;
+$count = 0;
 foreach ($data as $row) {
     $row_id   = ($row['user'] > 0) ? (int) $row['user'] : -1;
     $row_user = new User($row_id);
@@ -46,15 +47,9 @@ foreach ($data as $row) {
     $agent       = '';
     $time_string = '-';
 
-    $has_allowed_agent = true;
-    $has_allowed_time  = true;
-    $is_allowed        = Access::check('interface', '100') || Core::get_global('user')->id == $row_user->id;
-    if (!$is_allowed) {
-        $has_allowed_time  = Preference::get_by_user($row_user->id, 'allow_personal_info_time');
-        $has_allowed_agent = Preference::get_by_user($row_user->id, 'allow_personal_info_agent');
-    }
-
-    if ($is_allowed || $has_allowed_time) {
+    $has_allowed_time = (bool) $row['user_time'];
+    $is_allowed       = Access::check('interface', 100) || $my_id == $row_id || $has_allowed_time;
+    if ($is_allowed) {
         $interval = (int) (time() - $row['date']);
 
         if ($interval < 60) {
@@ -88,13 +83,13 @@ foreach ($data as $row) {
             <span class="cel_play_content">&nbsp;</span>
             <div class="cel_play_hover">
             <?php if (AmpConfig::get('directplay')) { ?>
-                <?php echo Ajax::button('?page=stream&action=directplay&object_type=song&object_id=' . $song->id, 'play', T_('Play'), 'play_song_' . $nb . '_' . $song->id); ?>
+                <?php echo Ajax::button('?page=stream&action=directplay&object_type=song&object_id=' . $song->id, 'play', T_('Play'), 'play_song_' . $count . '_' . $song->id); ?>
                 <?php if (Stream_Playlist::check_autoplay_next()) { ?>
-                    <?php echo Ajax::button('?page=stream&action=directplay&object_type=song&object_id=' . $song->id . '&playnext=true', 'play_next', T_('Play next'), 'nextplay_song_' . $nb . '_' . $song->id); ?>
+                    <?php echo Ajax::button('?page=stream&action=directplay&object_type=song&object_id=' . $song->id . '&playnext=true', 'play_next', T_('Play next'), 'nextplay_song_' . $count . '_' . $song->id); ?>
                 <?php
         } ?>
                 <?php if (Stream_Playlist::check_autoplay_append()) { ?>
-                    <?php echo Ajax::button('?page=stream&action=directplay&object_type=song&object_id=' . $song->id . '&append=true', 'play_add', T_('Play last'), 'addplay_song_' . $nb . '_' . $song->id); ?>
+                    <?php echo Ajax::button('?page=stream&action=directplay&object_type=song&object_id=' . $song->id . '&append=true', 'play_add', T_('Play last'), 'addplay_song_' . $count . '_' . $song->id); ?>
                 <?php
         } ?>
             <?php
@@ -104,8 +99,8 @@ foreach ($data as $row) {
         <td class="cel_song"><?php echo $song->f_link; ?></td>
         <td class="cel_add">
             <span class="cel_item_add">
-                <?php echo Ajax::button('?action=basket&type=song&id=' . $song->id, 'add', T_('Add to temporary playlist'), 'add_' . $nb . '_' . $song->id); ?>
-                <a id="<?php echo 'add_playlist_' . $nb . '_' . $song->id ?>" onclick="showPlaylistDialog(event, 'song', '<?php echo $song->id ?>')">
+                <?php echo Ajax::button('?action=basket&type=song&id=' . $song->id, 'add', T_('Add to temporary playlist'), 'add_' . $count . '_' . $song->id); ?>
+                <a id="<?php echo 'add_playlist_' . $count . '_' . $song->id ?>" onclick="showPlaylistDialog(event, 'song', '<?php echo $song->id ?>')">
                     <?php echo UI::get_icon('playlist_add', T_('Add to playlist')); ?>
                 </a>
             </span>
@@ -119,10 +114,9 @@ foreach ($data as $row) {
             </a>
         </td>
         <td class="cel_lastplayed"><?php echo $time_string; ?></td>
-        </td>
     </tr>
 <?php
-    ++$nb;
+    ++$count;
 } ?>
 <?php if (!count($data)) { ?>
     <tr>
@@ -137,7 +131,7 @@ foreach ($data as $row) {
             <th class="cel_song"><?php echo T_('Song'); ?></th>
             <th class="cel_add"></th>
             <th class="cel_album"><?php echo T_('Album'); ?></th>
-            <th class="cel_artist"><?php echo T_('Artist'); ?></th>
+            <th class="cel_artist"><?php echo T_('Song Artist'); ?></th>
             <th class="cel_year"><?php echo T_('Year'); ?></th>
             <th class="cel_username"><?php echo T_('Username'); ?></th>
             <th class="cel_lastplayed"><?php echo T_('Last Played'); ?></th>

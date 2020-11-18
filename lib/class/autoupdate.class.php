@@ -3,7 +3,7 @@ declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@ declare(strict_types=0);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -191,12 +191,8 @@ class AutoUpdate
     {
         $git_branch = self::is_force_git_branch();
         if (self::is_develop() || $git_branch !== '') {
-            debug_event('autoupdate.class', 'get_current_version development branch', 5);
-
             return self::get_current_commit();
         } else {
-            debug_event('autoupdate.class', 'get_current_version', 5);
-
             return AmpConfig::get('version');
         }
     }
@@ -287,8 +283,9 @@ class AutoUpdate
 
     /**
      * Update local git repository.
+     * @param bool $api
      */
-    public static function update_files()
+    public static function update_files($api = false)
     {
         $cmd        = 'git pull https://github.com/ampache/ampache.git';
         $git_branch = self::is_force_git_branch();
@@ -297,26 +294,35 @@ class AutoUpdate
         } elseif (self::is_develop()) {
             $cmd = 'git pull https://github.com/ampache/ampache.git develop';
         }
-        echo T_('Updating Ampache sources with `' . $cmd . '` ...') . '<br />';
+        if (!$api) {
+            echo T_('Updating Ampache sources with `' . $cmd . '` ...') . '<br />';
+        }
         ob_flush();
         chdir(AmpConfig::get('prefix'));
         exec($cmd);
-        echo T_('Done') . '<br />';
+        if (!$api) {
+            echo T_('Done') . '<br />';
+        }
         ob_flush();
         self::get_latest_version(true);
     }
 
     /**
      * Update project dependencies.
+     * @param bool $api
      */
-    public static function update_dependencies()
+    public static function update_dependencies($api = false)
     {
         $cmd = 'composer install --prefer-source --no-interaction';
-        echo T_('Updating dependencies with `' . $cmd . '` ...') . '<br />';
+        if (!$api) {
+            echo T_('Updating dependencies with `' . $cmd . '` ...') . '<br />';
+        }
         ob_flush();
         chdir(AmpConfig::get('prefix'));
         exec($cmd);
-        echo T_('Done') . '<br />';
+        if (!$api) {
+            echo T_('Done') . '<br />';
+        }
         ob_flush();
     }
 } // end autoupdate.class

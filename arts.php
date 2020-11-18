@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,12 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
-require_once 'lib/init.php';
+$a_root = realpath(__DIR__);
+require_once $a_root . '/lib/init.php';
 
 require_once AmpConfig::get('prefix') . UI::find_template('header.inc.php');
 
@@ -35,14 +36,28 @@ $burl = '';
 if (filter_has_var(INPUT_GET, 'burl')) {
     $burl = base64_decode(Core::get_get('burl'));
 }
-$item = new $object_type($object_id);
 
+$item = new $object_type($object_id);
+$item->format();
 // If not a content manager user then kick em out
 if (!Access::check('interface', 50) && (!Access::check('interface', 25) || $item->get_user_owner() != Core::get_global('user')->id)) {
     UI::access_denied();
 
     return false;
 }
+$keywords = $item->get_keywords();
+$keyword  = '';
+$options  = array();
+foreach ($keywords as $key => $word) {
+    if (isset($_REQUEST['option_' . $key])) {
+        $word['value'] = $_REQUEST['option_' . $key];
+    }
+    $options[$key] = $word['value'];
+    if ($word['important'] && !empty($word['value'])) {
+        $keyword .= ' ' . $word['value'];
+    }
+}
+$options['keyword'] = trim($keyword);
 
 // Switch on the actions
 switch ($_REQUEST['action']) {
@@ -50,7 +65,7 @@ switch ($_REQUEST['action']) {
         $art = new Art($object_id, $object_type);
         $art->reset();
         show_confirmation(T_('No Problem'), T_('Art information has been removed from the database'), $burl);
-    break;
+        break;
     // Upload art
     case 'upload_art':
         // we didn't find anything
@@ -76,17 +91,27 @@ switch ($_REQUEST['action']) {
         else {
             show_confirmation(T_("There Was a Problem"), T_('Art could not be located at this time. This may be due to write access error, or the file was not received correctly'), $burl);
         }
-
-    break;
+        break;
+    case 'show_art_dlg':
+        require_once AmpConfig::get('prefix') . UI::find_template('show_get_art.inc.php');
+        break;
     case 'find_art':
         // Prevent the script from timing out
         set_time_limit(0);
 
-        $item->format();
         $art       = new Art($object_id, $object_type);
         $images    = array();
         $cover_url = array();
-
+        $limit     = 0;
+        if (isset($_REQUEST['artist_filter'])) {
+            $options['artist_filter'] =true;
+        }
+        if (isset($_REQUEST['search_limit'])) {
+            $options['search_limit'] = $limit = (int) $_REQUEST['search_limit'];
+        }
+        if (isset($_REQUEST['year_filter']) && !empty($_REQUEST['year_filter'])) {
+            $options['year_filter'] = 'year:' . $_REQUEST['year_filter'];
+        }
         // If we've got an upload ignore the rest and just insert it
         if (!empty($_FILES['file']['tmp_name'])) {
             $path_info      = pathinfo($_FILES['file']['name']);
@@ -104,38 +129,20 @@ switch ($_REQUEST['action']) {
             } // if image data
         } // if it's an upload
 
-        $keywords = $item->get_keywords();
-        $keyword  = '';
-        $options  = array();
-        foreach ($keywords as $key => $word) {
-            if (isset($_REQUEST['option_' . $key])) {
-                $word['value'] = $_REQUEST['option_' . $key];
-            }
-            $options[$key] = $word['value'];
-            if ($word['important']) {
-                if (!empty($word['value'])) {
-                    $keyword .= ' ' . $word['value'];
-                }
-            }
-        }
-        $options['keyword'] = trim($keyword);
-
         // Attempt to find the art.
-        $images = $art->gather($options);
+        $images = $art->gather($options, $limit);
 
         if (!empty($_REQUEST['cover'])) {
-            $path_info                = pathinfo($_REQUEST['cover']);
-            $cover_url[0]['url']      = scrub_in($_REQUEST['cover']);
-            $cover_url[0]['mime']     = 'image/' . $path_info['extension'];
+            $path_info            = pathinfo($_REQUEST['cover']);
+            $cover_url[0]['url']  = scrub_in($_REQUEST['cover']);
+            $cover_url[0]['mime'] = 'image/' . $path_info['extension'];
         }
         $images = array_merge($cover_url, $images);
 
-        debug_event('arts', 'HOW MANY IMAGES?:' . (string) count($images), 3);
         // If we've found anything then go for it!
         if (count($images)) {
             // We don't want to store raw's in here so we need to strip them out into a separate array
             foreach ($images as $index => $image) {
-                debug_event('arts', 'IMAGE URL?:' . (string) $images[$index]['url'], 3);
                 if ($image['raw']) {
                     unset($images[$index]['raw']);
                 }
@@ -144,12 +151,9 @@ switch ($_REQUEST['action']) {
             $_SESSION['form']['images'] = $images;
             require_once AmpConfig::get('prefix') . UI::find_template('show_arts.inc.php');
         }
-
         require_once AmpConfig::get('prefix') . UI::find_template('show_get_art.inc.php');
-
-    break;
+        break;
     case 'select_art':
-
         /* Check to see if we have the image url still */
         $image_id = $_REQUEST['image'];
 
@@ -177,9 +181,9 @@ switch ($_REQUEST['action']) {
         }
 
         header("Location:" . $burl);
-    break;
+        break;
 }
 
-/* Show the Footer */
+// Show the Footer
 UI::show_query_stats();
 UI::show_footer();

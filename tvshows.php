@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,12 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
-require_once 'lib/init.php';
+$a_root = realpath(__DIR__);
+require_once $a_root . '/lib/init.php';
 
 UI::show_header();
 
@@ -32,12 +33,13 @@ switch ($_REQUEST['action']) {
         }
 
         $tvshow_id = (string) scrub_in($_REQUEST['tvshow_id']);
-        show_confirmation(T_('Are You Sure?'), T_("The TV Show and its files will be deleted"),
+        show_confirmation(T_('Are You Sure?'),
+            T_("The TV Show and its files will be deleted"),
             AmpConfig::get('web_path') . "/tvshows.php?action=confirm_delete&tvshow_id=" . $tvshow_id,
             1,
             'delete_tvshow'
         );
-    break;
+        break;
     case 'confirm_delete':
         if (AmpConfig::get('demo_mode')) {
             break;
@@ -56,7 +58,7 @@ switch ($_REQUEST['action']) {
         } else {
             show_confirmation(T_("There Was a Problem"), T_("Couldn't delete this TV Show"), AmpConfig::get('web_path'));
         }
-    break;
+        break;
     case 'show':
         $tvshow = new TVShow($_REQUEST['tvshow']);
         $tvshow->format();
@@ -64,35 +66,8 @@ switch ($_REQUEST['action']) {
         $object_type = 'tvshow_season';
         require_once AmpConfig::get('prefix') . UI::find_template('show_tvshow.inc.php');
         break;
-    case 'match':
-    case 'Match':
-        $match = (string) scrub_in($_REQUEST['match']);
-        if ($match == "Browse") {
-            $chr = "";
-        } else {
-            $chr = $match;
-        }
-        /* Enclose this in the purty box! */
-        require AmpConfig::get('prefix') . UI::find_template('show_box_top.inc.php');
-        show_alphabet_list('tvshows', 'tvshows.php', $match);
-        show_alphabet_form($chr, T_('Show TV Shows starting with'), "tvshows.php?action=match");
-        require AmpConfig::get('prefix') . UI::find_template('show_box_bottom.inc.php');
-
-        if ($match === "Browse") {
-            show_tvshows();
-        } elseif ($match === "Show_all") {
-            $offset_limit = 999999;
-            show_tvshows();
-        } else {
-            if ($chr == '') {
-                show_tvshows('A');
-            } else {
-                show_tvshows($chr);
-            }
-        }
-    break;
 } // end switch
 
-/* Show the Footer */
+// Show the Footer
 UI::show_query_stats();
 UI::show_footer();

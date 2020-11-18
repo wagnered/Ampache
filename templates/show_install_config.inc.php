@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,9 +25,9 @@ $web_path_guess = $_REQUEST['web_path'];
 if (empty($web_path_guess)) {
     $web_path_guess = get_web_path();
 }
-
+$db_user        = scrub_out($_REQUEST['db_user']);
 $local_username = scrub_out($_REQUEST['db_username']);
-if (empty($local_username)) {
+if (!$db_user) {
     $local_username = scrub_out($_REQUEST['local_username']);
 }
 $local_pass = scrub_out($_REQUEST['db_password']);
@@ -36,7 +36,7 @@ if (empty($local_pass)) {
 }
 
 require $prefix . '/templates/install_header.inc.php'; ?>
-        <div class="jumbotron">
+        <div class="jumbotron" style="margin-top: 70px">
             <h1><?php echo T_('Install Progress'); ?></h1>
             <div class="progress">
                 <div class="progress-bar progress-bar-warning"

@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -86,12 +86,16 @@ class Catalog_remote extends Catalog
      */
     public function install()
     {
+        $collation = (AmpConfig::get('database_collation', 'utf8_unicode_ci'));
+        $charset   = (AmpConfig::get('database_charset', 'utf8'));
+        $engine    = ($charset == 'utf8mb4') ? 'InnoDB' : 'MYISAM';
+
         $sql = "CREATE TABLE `catalog_remote` (`id` INT( 11 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY , " .
-            "`uri` VARCHAR( 255 ) COLLATE utf8_unicode_ci NOT NULL , " .
-            "`username` VARCHAR( 255 ) COLLATE utf8_unicode_ci NOT NULL , " .
-            "`password` VARCHAR( 255 ) COLLATE utf8_unicode_ci NOT NULL , " .
+            "`uri` VARCHAR( 255 ) COLLATE $collation NOT NULL , " .
+            "`username` VARCHAR( 255 ) COLLATE $collation NOT NULL , " .
+            "`password` VARCHAR( 255 ) COLLATE $collation NOT NULL , " .
             "`catalog_id` INT( 11 ) NOT NULL" .
-            ") ENGINE = MYISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci";
+            ") ENGINE = $engine DEFAULT CHARSET=$charset COLLATE=$collation";
         Dba::query($sql);
 
         return true;
@@ -356,7 +360,7 @@ class Catalog_remote extends Catalog
      * checks to see if a remote song exists in the database or not
      * if it find a song it returns the UID
      * @param array $song
-     * @return bool|mixed
+     * @return boolean|mixed
      */
     public function check_remote_song($song)
     {
@@ -397,7 +401,7 @@ class Catalog_remote extends Catalog
 
     /**
      * @param Podcast_Episode|Song|Song_Preview|Video $media
-     * @return bool|media|null
+     * @return boolean|media|null
      * @throws Exception
      */
     public function prepare_media($media)

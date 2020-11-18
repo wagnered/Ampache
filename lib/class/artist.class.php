@@ -3,7 +3,7 @@ declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@ declare(strict_types=0);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -179,8 +179,12 @@ class Artist extends database_object implements library_item
             $this->$key = $value;
         } // foreach info
 
+        if ($this->time == 0) {
+            $this->time = $this->update_time();
+        }
+
         return true;
-    } //constructor
+    } // constructor
 
     /**
      * construct_from_array
@@ -196,7 +200,7 @@ class Artist extends database_object implements library_item
             $artist->$key = $value;
         }
 
-        //Ack that this is not a real object from the DB
+        // Ack that this is not a real object from the DB
         $artist->_fake = true;
 
         return $artist;
@@ -225,7 +229,7 @@ class Artist extends database_object implements library_item
      */
     public static function build_cache($ids, $extra = false, $limit_threshold = '')
     {
-        if (!is_array($ids) || !count($ids)) {
+        if (empty($ids)) {
             return false;
         }
         $idlist     = '(' . implode(',', $ids) . ')';
@@ -476,7 +480,7 @@ class Artist extends database_object implements library_item
             $sql .= "LEFT JOIN `catalog` ON `catalog`.`id` = `song`.`catalog` ";
             $where = "WHERE `catalog`.`enabled` = '1' ";
         } else {
-            $where = "WHERE '1' = '1' ";
+            $where = "WHERE 1=1 ";
         }
         if (AmpConfig::get('catalog_filter')) {
             $where .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
@@ -494,7 +498,7 @@ class Artist extends database_object implements library_item
                     " (SELECT `object_id` FROM `rating`" .
                     " WHERE `rating`.`object_type` = 'artist'" .
                     " AND `rating`.`rating` <=" . $rating_filter .
-                    " AND `rating`.`user` = " . $user_id . ")";
+                    " AND `rating`.`user` = " . $user_id . ") ";
         }
 
         $sql .= "ORDER BY RAND() LIMIT " . (string) $count;
@@ -505,6 +509,23 @@ class Artist extends database_object implements library_item
         }
 
         return $results;
+    }
+
+    /**
+     * get_time
+     *
+     * Get time for an artist's songs.
+     * @param integer $artist_id
+     * @return integer
+     */
+    public static function get_time($artist_id)
+    {
+        $params     = array($artist_id);
+        $sql        = "SELECT SUM(`song`.`time`) AS `time` from `song` WHERE `song`.`artist` = ?";
+        $db_results = Dba::read($sql, $params);
+        $results    = Dba::fetch_assoc($db_results);
+
+        return (int) $results['time'];
     }
 
     /**
@@ -604,7 +625,7 @@ class Artist extends database_object implements library_item
             // Get the counts
             $extra_info = $this->_get_extra_info($this->catalog_id, $limit_threshold);
 
-            //Format the new time thingy that we just got
+            // Format the new time thingy that we just got
             $min = sprintf("%02d", (floor($extra_info['time'] / 60) % 60));
 
             $sec   = sprintf("%02d", ($extra_info['time'] % 60));
@@ -621,6 +642,9 @@ class Artist extends database_object implements library_item
             }
 
             $this->object_cnt = $extra_info['object_cnt'];
+        }
+        if ($this->time == 0) {
+            $this->time = $this->update_time();
         }
 
         return true;
@@ -697,10 +721,10 @@ class Artist extends database_object implements library_item
         $albums                    = Search::run($search);
 
         $childrens = array();
-        foreach ($albums as $album) {
+        foreach ($albums as $album_id) {
             $childrens[] = array(
                 'object_type' => 'album',
-                'object_id' => $album
+                'object_id' => $album_id
             );
         }
 
@@ -741,7 +765,7 @@ class Artist extends database_object implements library_item
 
     /**
      * Get item's owner.
-     * @return int|null
+     * @return integer|null
      */
     public function get_user_owner()
     {
@@ -773,16 +797,16 @@ class Artist extends database_object implements library_item
      */
     public function display_art($thumb = 2, $force = false)
     {
-        $id   = null;
-        $type = null;
+        $artist_id = null;
+        $type      = null;
 
         if (Art::has_db($this->id, 'artist') || $force) {
-            $id   = $this->id;
-            $type = 'artist';
+            $artist_id = $this->id;
+            $type      = 'artist';
         }
 
-        if ($id !== null && $type !== null) {
-            Art::display($type, $id, $this->get_fullname(), $thumb, $this->link);
+        if ($artist_id !== null && $type !== null) {
+            Art::display($type, $artist_id, $this->get_fullname(), $thumb, $this->link);
         }
     }
 
@@ -817,7 +841,7 @@ class Artist extends database_object implements library_item
      * @param string $name
      * @param string $mbid
      * @param boolean $readonly
-     * @return int|null
+     * @return integer|null
      */
     public static function check($name, $mbid = '', $readonly = false)
     {
@@ -851,7 +875,7 @@ class Artist extends database_object implements library_item
             $db_results = Dba::read($sql, array($mbid));
 
             if ($row = Dba::fetch_assoc($db_results)) {
-                $artist_id = $row['id'];
+                $artist_id = (int) $row['id'];
                 $exists    = true;
             }
         }
@@ -897,12 +921,12 @@ class Artist extends database_object implements library_item
         if (!$db_results) {
             return null;
         }
-        $artist_id = Dba::insert_id();
+        $artist_id = (int) Dba::insert_id();
         debug_event('artist.class', 'Artist check created new artist id `' . $artist_id . '`.', 4);
 
         self::$_mapcache[$name][$prefix][$mbid] = $artist_id;
 
-        return (int) $artist_id;
+        return $artist_id;
     }
 
     /**
@@ -993,7 +1017,7 @@ class Artist extends database_object implements library_item
         }
 
         if (isset($data['edit_tags'])) {
-            $this->update_tags($data['edit_tags'], $override_childs, $add_to_childs, $current_id, true);
+            $this->update_tags($data['edit_tags'], $override_childs, $add_to_childs, true);
         }
 
         if (AmpConfig::get('label') && isset($data['edit_labels'])) {
@@ -1013,13 +1037,9 @@ class Artist extends database_object implements library_item
      * @param integer|null $current_id
      * @param boolean $force_update
      */
-    public function update_tags($tags_comma, $override_childs, $add_to_childs, $current_id = null, $force_update = false)
+    public function update_tags($tags_comma, $override_childs, $add_to_childs, $force_update = false)
     {
-        if ($current_id === null) {
-            $current_id = $this->id;
-        }
-
-        Tag::update_tag_list($tags_comma, 'artist', $current_id, $force_update ? true : $override_childs);
+        Tag::update_tag_list($tags_comma, 'artist', $this->id, $force_update ? true : $override_childs);
 
         if ($override_childs || $add_to_childs) {
             $albums = $this->get_albums();
@@ -1064,7 +1084,7 @@ class Artist extends database_object implements library_item
 
     /**
      * Update artist last_update time.
-     * @param $object_id
+     * @param integer $object_id
      */
     public static function set_last_update($object_id)
     {
@@ -1073,7 +1093,24 @@ class Artist extends database_object implements library_item
     }
 
     /**
-     * @return bool|PDOStatement
+     * update_time
+     *
+     * Get time for an artist and set it.
+     * @return integer
+     */
+    public function update_time()
+    {
+        $time = self::get_time((int) $this->id);
+        if ($time !== $this->time && $this->id) {
+            $sql = "UPDATE `artist` SET `time`=$time WHERE `id`=" . $this->id;
+            Dba::write($sql);
+        }
+
+        return $time;
+    }
+
+    /**
+     * @return PDOStatement|boolean
      */
     public function remove()
     {

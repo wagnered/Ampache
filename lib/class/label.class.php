@@ -3,7 +3,7 @@ declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@ declare(strict_types=0);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -97,9 +97,9 @@ class Label extends database_object implements library_item
     }
 
     /**
-     * @param $thumb
+     * display_art
+     * @param integer $thumb
      * @param boolean $force
-     * @return mixed|void
      */
     public function display_art($thumb, $force = false)
     {
@@ -184,7 +184,7 @@ class Label extends database_object implements library_item
     }
 
     /**
-     * @param $filter_type
+     * @param string $filter_type
      * @return array|mixed
      */
     public function get_medias($filter_type = null)
@@ -221,7 +221,7 @@ class Label extends database_object implements library_item
 
     /**
      * search_childrens
-     * @param $name
+     * @param string $name
      * @return array
      */
     public function search_childrens($name)
@@ -234,10 +234,10 @@ class Label extends database_object implements library_item
         $artists                   = Search::run($search);
 
         $childrens = array();
-        foreach ($artists as $artist) {
+        foreach ($artists as $artist_id) {
             $childrens[] = array(
                 'object_type' => 'artist',
-                'object_id' => $artist
+                'object_id' => $artist_id
             );
         }
 
@@ -300,6 +300,27 @@ class Label extends database_object implements library_item
     }
 
     /**
+     * helper
+     * @param string $name
+     * @return string
+     */
+    public static function helper(string $name)
+    {
+        $label_data = array(
+            'name' => $name,
+            'category' => 'tag_generated',
+            'summary' => null,
+            'address' => null,
+            'email' => null,
+            'website' => null,
+            'user' => 0,
+            'creation_date' => time()
+        );
+
+        return self::create($label_data);
+    }
+
+    /**
      * create
      * @param array $data
      * @return string
@@ -327,11 +348,12 @@ class Label extends database_object implements library_item
     }
 
     /**
+     * lookup
      * @param array $data
-     * @param integer $id
+     * @param integer $label_id
      * @return integer
      */
-    public static function lookup(array $data, $id = 0)
+    public static function lookup(array $data, $label_id = 0)
     {
         $ret  = -1;
         $name = trim((string) $data['name']);
@@ -339,9 +361,9 @@ class Label extends database_object implements library_item
             $ret    = 0;
             $sql    = "SELECT `id` FROM `label` WHERE `name` = ?";
             $params = array($name);
-            if ($id > 0) {
+            if ($label_id > 0) {
                 $sql .= " AND `id` != ?";
-                $params[] = $id;
+                $params[] = $label_id;
             }
             $db_results = Dba::read($sql, $params);
             if ($row = Dba::fetch_assoc($db_results)) {
@@ -353,6 +375,7 @@ class Label extends database_object implements library_item
     }
 
     /**
+     * garbage_collection
      * @return mixed|void
      */
     public static function garbage_collection()
@@ -361,7 +384,8 @@ class Label extends database_object implements library_item
     }
 
     /**
-     * @return array
+     * get_artists
+     * @return integer[]
      */
     public function get_artists()
     {
@@ -369,7 +393,7 @@ class Label extends database_object implements library_item
         $db_results = Dba::read($sql, array($this->id));
         $results    = array();
         while ($row = Dba::fetch_assoc($db_results)) {
-            $results[] = $row['artist'];
+            $results[] = (int) $row['artist'];
         }
 
         return $results;
@@ -378,7 +402,7 @@ class Label extends database_object implements library_item
     /**
      * add_artist_assoc
      * @param integer $artist_id
-     * @return boolean|PDOStatement
+     * @return PDOStatement|boolean
      */
     public function add_artist_assoc($artist_id)
     {
@@ -390,7 +414,7 @@ class Label extends database_object implements library_item
     /**
      * remove_artist_assoc
      * @param integer $artist_id
-     * @return boolean|PDOStatement
+     * @return PDOStatement|boolean
      */
     public function remove_artist_assoc($artist_id)
     {
@@ -430,7 +454,8 @@ class Label extends database_object implements library_item
     } // get_songs
 
     /**
-     * @return bool|PDOStatement
+     * remove
+     * @return PDOStatement|boolean
      */
     public function remove()
     {
@@ -448,6 +473,7 @@ class Label extends database_object implements library_item
     }
 
     /**
+     * get_all_labels
      * @return array
      */
     public static function get_all_labels()
@@ -525,7 +551,8 @@ class Label extends database_object implements library_item
         debug_event('label.class', 'Updating labels for values {' . $labels_comma . '} artist {' . $artist_id . '}', 5);
 
         $clabels      = Label::get_labels($artist_id);
-        $editedLabels = array_unique(preg_split('/(\s*,*\s*)*,+(\s*,*\s*)*/', $labels_comma));
+        $filter_list  = preg_split('/(\s*,*\s*)*,+(\s*,*\s*)*/', $labels_comma);
+        $editedLabels = (is_array($filter_list)) ? array_unique($filter_list) : array();
 
         foreach ($clabels as $clid => $clv) {
             if ($clid) {
@@ -534,10 +561,10 @@ class Label extends database_object implements library_item
                 $found   = false;
                 $lstring = '';
 
-                foreach ($editedLabels as  $lk => $lv) {
-                    if ($clabel->name == $lv) {
+                foreach ($editedLabels as $key => $value) {
+                    if ($clabel->name == $value) {
                         $found   = true;
-                        $lstring = $lk;
+                        $lstring = $key;
                         break;
                     }
                 }
@@ -553,10 +580,10 @@ class Label extends database_object implements library_item
         }
 
         // Look if we need to add some new labels
-        foreach ($editedLabels as  $lk => $lv) {
-            if ($lv != '') {
-                debug_event('label.class', 'Adding new label {' . $lv . '}', 4);
-                $label_id = Label::lookup(array('name' => $lv));
+        foreach ($editedLabels as $key => $value) {
+            if ($value != '') {
+                debug_event('label.class', 'Adding new label {' . $value . '}', 4);
+                $label_id = Label::lookup(array('name' => $value));
                 if ($label_id === 0) {
                     debug_event('label.class', 'Creating a label directly from artist editing is not allowed.', 3);
                     //$label_id = Label::create(array('name' => $lv));

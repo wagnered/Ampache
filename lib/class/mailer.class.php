@@ -3,7 +3,7 @@ declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,9 +17,11 @@ declare(strict_types=0);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+
+use PHPMailer\PHPMailer\PHPMailer;
 
 /**
  * Mailer Class
@@ -114,18 +116,18 @@ class Mailer
         switch ($filter) {
             case 'users':
                 $sql = "SELECT * FROM `user` WHERE `access`='25' AND `email` IS NOT NULL";
-            break;
+                break;
             case 'admins':
                 $sql = "SELECT * FROM `user` WHERE `access`='100' AND `email` IS NOT NULL";
-            break ;
+                break;
             case 'inactive':
                 $inactive = time() - (30 * 86400);
                 $sql      = 'SELECT * FROM `user` WHERE `last_seen` <= ? AND `email` IS NOT NULL';
-            break;
+                break;
             case 'all':
             default:
                 $sql = "SELECT * FROM `user` WHERE `email` IS NOT NULL";
-            break;
+                break;
         } // end filter switch
 
         $db_results = Dba::read($sql, isset($inactive) ? array($inactive) : array());
@@ -144,6 +146,7 @@ class Mailer
      * This actually sends the mail, how amazing
      * @param PHPMailer $phpmailer
      * @return boolean
+     * @throws \PHPMailer\PHPMailer\Exception
      */
     public function send($phpmailer = null)
     {
@@ -190,7 +193,7 @@ class Mailer
                 $mail->IsSMTP();
                 $mail->Host = $mailhost;
                 $mail->Port = $mailport;
-                if ($mailauth === true) {
+                if ($mailauth) {
                     $mail->SMTPAuth = true;
                     $mail->Username = $mailuser;
                     $mail->Password = $mailpass;
@@ -198,15 +201,15 @@ class Mailer
                 if ($mailsecure = AmpConfig::get('mail_secure_smtp')) {
                     $mail->SMTPSecure = ($mailsecure == 'ssl') ? 'ssl' : 'tls';
                 }
-            break;
+                break;
             case 'sendmail':
                 $mail->IsSendmail();
                 $mail->Sendmail = $sendmail;
-            break;
+                break;
             case 'php':
             default:
                 $mail->IsMail();
-            break;
+                break;
         }
 
         $retval = $mail->send();
@@ -220,6 +223,7 @@ class Mailer
     /**
      * @param $group_name
      * @return boolean
+     * @throws \PHPMailer\PHPMailer\Exception
      */
     public function send_to_group($group_name)
     {

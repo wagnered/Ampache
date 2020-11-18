@@ -1,18 +1,19 @@
 # Ampache
 
-![Logo](http://ampache.org/img/logo/ampache-logo_x64.png) Ampache
+![Logo](http://ampache.org/img/logo/ampache-logo_x64.png)
 
 [www.ampache.org](http://ampache.org/) |
 [ampache.github.io](http://ampache.github.io)
 
 **News:**
 
-* JSON support has landed! (Documentation for the API in both formats is being written in [flatdoc](http://ricostacruz.com/flatdoc/))
-* Ampache is getting social! Check out:
-  * [r/Ampache](https://www.reddit.com/r/ampache/)
-  * [Our Telegram Group](https://t.me/ampache)
-  * [Official Twitter](https://twitter.com/ampache)
-  * [Official Mastodon](https://fosstodon.org/@ampache)
+* Develop changes
+  * **DATABASE CHANGES** You can now force a default collation and charset on your database. (Read the changelog!)
+  * Develop branch now has a **mandatory** requirement of php-intl for date formatting.
+  * The initial development version of api 5.0.0 has been released! Please go over the changes on the [ampache.org](http://ampache.org/api/) website!
+* Get your album/artist art right from Spotify's web API. Go to the [dashboard](https://developer.spotify.com/dashboard/)
+  * Then put your client ID and secret in your ampache config
+  * And don't forget to set your art order! (art_order = "db,tags,folder,spotify,musicbrainz")
 
 ## Basics
 
@@ -40,11 +41,11 @@ You get the latest version with recent changes and fixes but maybe in an unstabl
 
 ## Installation
 
-Please see [the wiki](https://github.com/ampache/ampache/wiki/Installation)
+Please see [the wiki](https://github.com/ampache/ampache/wiki/Installation) and don't forget to check out the [basic config](https://github.com/ampache/ampache/wiki/Basic) guide after that.
 
 ## Requirements
 
-* A web server. All of the following have been used, though Apache receives the most testing with Apache:
+* A web server. All of the following have been used, though Ampache receives the most testing with Apache:
   * Apache
   * lighttpd
   * nginx
@@ -58,14 +59,16 @@ Please see [the wiki](https://github.com/ampache/ampache/wiki/Installation)
   * hash
   * session
   * json
+  * intl (Ampache develop)
   * simplexml (optional)
   * curl (optional)
 
 * For FreeBSD The following php modules must be loaded:
   * php-xml
   * php-dom
+  * php-intl (Ampache develop)
 
-* MySQL 5.x / MariaDB 10.x
+* MySQL 5.x / MySQL 8.x / MariaDB 10.x
 
 ## Upgrading
 
@@ -78,7 +81,7 @@ All database updates will be handled by Ampache.
 ## License
 
 Ampache is free software; you can redistribute it and/or
-modify it under the terms of the GNU Affero General Public License v3 (AGPLv3)
+modify it under the terms of the GNU Affero General Public License v3 (AGPL-3.0-or-later)
 as published by the Free Software Foundation.
 
 Ampache includes some [external modules](https://github.com/ampache/ampache/blob/develop/composer.lock) that carry their own licensing.
@@ -97,7 +100,7 @@ Translation progress so far:
 
 ## Credits
 
-Thanks to all those who have helped make Ampache awesome: [Credits](docs/ACKNOWLEDGEMENTS)
+Thanks to all those who have helped make Ampache awesome: [Credits](docs/ACKNOWLEDGEMENTS.md)
 
 ## Contact Us
 
@@ -106,6 +109,10 @@ Hate it? Love it? Let us know! Dozens of people send ideas for amazing new featu
 * For Live discussions, visit us on our IRC Channel at chat.freenode.net #ampache or alternative via a [web based chat client](https://webchat.freenode.net)
 * For harder cases or general discussion about Ampache take a look at our [Google Groups Forum](https://groups.google.com/forum/#!forum/ampache)
 * Found a bug or Ampache isn't working as expected? Please refer to the [Issues Template](https://github.com/ampache/ampache/wiki/Issues) and head over to our [Issue Tracker](https://github.com/ampache/ampache/issues)
+* [r/Ampache](https://www.reddit.com/r/ampache/)
+* [Our Telegram Group](https://t.me/ampache)
+* [Official Twitter](https://twitter.com/ampache)
+* [Official Mastodon](https://fosstodon.org/@ampache)
 
 ## Further Information and basic Help
 
@@ -114,4 +121,4 @@ Hate it? Love it? Let us know! Dozens of people send ideas for amazing new featu
 
 We hope to see you soon and that you have fun with this Project!
 
-[Team Ampache](docs/ACKNOWLEDGEMENTS)
+[Team Ampache](docs/ACKNOWLEDGEMENTS.md)

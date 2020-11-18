@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,11 +16,14 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- */
-$user = Core::get_global('user');
+ */ ?>
+<div id="browse_header">
+<?php UI::show('show_browse_form.inc.php'); ?>
+</div> <!-- Close browse_header Div -->
 
+<?php $user = Core::get_global('user');
 if ($user) {
     foreach (Plugin::get_plugins('display_home') as $plugin_name) {
         $plugin = new Plugin($plugin_name);

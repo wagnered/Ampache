@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 $thcount  = 7; ?>
@@ -31,19 +31,23 @@ $thcount  = 7; ?>
             <th class="cel_add essential"></th>
             <th class="cel_podcast optional"><?php echo T_('Podcast'); ?></th>
             <th class="cel_time optional"><?php echo T_('Time'); ?></th>
+            <?php if (AmpConfig::get('show_played_times')) { ?>
+                <th class="cel_counter optional"><?php echo T_('# Played'); ?></th>
+                <?php
+            } ?>
             <th class="cel_pubdate optional"><?php echo T_('Publication Date'); ?></th>
             <th class="cel_state optional"><?php echo T_('State'); ?></th>
             <?php if (User::is_registered()) { ?>
                 <?php if (AmpConfig::get('ratings')) {
-    ++$thcount; ?>
+                ++$thcount; ?>
                     <th class="cel_rating optional"><?php echo T_('Rating'); ?></th>
                 <?php
-} ?>
+            } ?>
                 <?php if (AmpConfig::get('userflags')) {
-        ++$thcount; ?>
+                ++$thcount; ?>
                     <th class="cel_userflag optional"><?php echo T_('Fav.'); ?></th>
                 <?php
-    } ?>
+            } ?>
             <?php
 } ?>
             <th class="cel_action essential"><?php echo T_('Actions'); ?></th>
@@ -84,6 +88,10 @@ $thcount  = 7; ?>
             <th class="cel_add"></th>
             <th class="cel_podcast"><?php echo T_('Podcast'); ?></th>
             <th class="cel_time"><?php echo T_('Time'); ?></th>
+            <?php if (AmpConfig::get('show_played_times')) { ?>
+                <th class="cel_counter optional"><?php echo T_('# Played'); ?></th>
+                <?php
+            } ?>
             <th class="cel_pubdate"><?php echo T_('Publication Date'); ?></th>
             <th class="cel_state"><?php echo T_('State'); ?></th>
             <?php if (User::is_registered()) { ?>

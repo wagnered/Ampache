@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -85,19 +85,22 @@ class AmpacheMpd extends localplay_controller
      */
     public function install()
     {
+        $collation = (AmpConfig::get('database_collation', 'utf8_unicode_ci'));
+        $charset   = (AmpConfig::get('database_charset', 'utf8'));
+        $engine    = ($charset == 'utf8mb4') ? 'InnoDB' : 'MYISAM';
         /* We need to create the MPD table */
         $sql = "CREATE TABLE `localplay_mpd` ( `id` INT( 11 ) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY , " .
-                "`name` VARCHAR( 128 ) COLLATE utf8_unicode_ci NOT NULL , " .
+                "`name` VARCHAR( 128 ) COLLATE $collation NOT NULL , " .
                 "`owner` INT( 11 ) NOT NULL , " .
-                "`host` VARCHAR( 255 ) COLLATE utf8_unicode_ci NOT NULL , " .
+                "`host` VARCHAR( 255 ) COLLATE $collation NOT NULL , " .
                 "`port` INT( 11 ) UNSIGNED NOT NULL DEFAULT '6600', " .
-                "`password` VARCHAR( 255 ) COLLATE utf8_unicode_ci NOT NULL , " .
+                "`password` VARCHAR( 255 ) COLLATE $collation NOT NULL , " .
                 "`access` SMALLINT( 4 ) UNSIGNED NOT NULL DEFAULT '0'" .
-                ") ENGINE = MYISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci";
-        $db_results = Dba::write($sql);
+                ") ENGINE = $engine DEFAULT CHARSET=$charset COLLATE=$collation";
+        Dba::query($sql);
 
         // Add an internal preference for the users current active instance
-        Preference::insert('mpd_active', T_('MPD Active Instance'), '0', '25', 'integer', 'internal', 'mpd');
+        Preference::insert('mpd_active', T_('MPD Active Instance'), 0, 25, 'integer', 'internal', 'mpd');
 
         return true;
     } // install
@@ -120,7 +123,7 @@ class AmpacheMpd extends localplay_controller
      * add_instance
      * This takes key'd data and inserts a new MPD instance
      * @param array $data
-     * @return bool|PDOStatement
+     * @return PDOStatement|boolean
      */
     public function add_instance($data)
     {
@@ -302,8 +305,8 @@ class AmpacheMpd extends localplay_controller
      * delete_track
      * This must take a single ID (as returned by the get function)
      * and delete it from the current playlist
-     * @param $object_id
-     * @return bool|string
+     * @param integer $object_id
+     * @return boolean|string
      */
     public function delete_track($object_id)
     {
@@ -406,7 +409,7 @@ class AmpacheMpd extends localplay_controller
      * volume
      * This tells MPD to set the volume to the parameter
      * @param $volume
-     * @return bool|string
+     * @return boolean|string
      */
     public function volume($volume)
     {
@@ -418,7 +421,7 @@ class AmpacheMpd extends localplay_controller
      * This tells MPD to set the repeating the playlist (i.e. loop) to either
      * on or off.
      * @param $state
-     * @return bool|string
+     * @return boolean|string
      */
     public function repeat($state)
     {
@@ -430,7 +433,7 @@ class AmpacheMpd extends localplay_controller
      * This tells MPD to turn on or off the playing of songs from the
      * playlist in random order.
      * @param $onoff
-     * @return bool|string
+     * @return boolean|string
      */
     public function random($onoff)
     {
@@ -442,7 +445,7 @@ class AmpacheMpd extends localplay_controller
      * This tells MPD to move a song
      * @param $source
      * @param $destination
-     * @return bool|string
+     * @return boolean|string
      */
     public function move($source, $destination)
     {
@@ -482,18 +485,17 @@ class AmpacheMpd extends localplay_controller
                     $song->format();
                     $data['name']   = $song->f_title . ' - ' . $song->f_album . ' - ' . $song->f_artist;
                     $data['link']   = $song->f_link;
-                break;
+                    break;
                 case 'demo_id':
                     $democratic     = new Democratic($url_data['demo_id']);
                     $data['name']   = T_('Democratic') . ' - ' . $democratic->name;
                     $data['link']   = '';
-                break;
+                    break;
                 case 'random':
                     $data['name'] = T_('Random') . ' - ' . scrub_out(ucfirst($url_data['type']));
                     $data['link'] = '';
-                break;
+                    break;
                 default:
-
                     /* If we don't know it, look up by filename */
                     $filename = Dba::escape($entry['file']);
                     $sql      = "SELECT `id`, 'song' AS `type` FROM `song` WHERE `file` LIKE '%$filename' " .
@@ -508,22 +510,24 @@ class AmpacheMpd extends localplay_controller
                             case 'song':
                                 $data['name'] = $media->f_title . ' - ' . $media->f_album . ' - ' . $media->f_artist;
                                 $data['link'] = $media->f_link;
-                            break;
+                                break;
                             case 'live_stream':
                                 $frequency    = $media->frequency ? '[' . $media->frequency . ']' : '';
                                 $site_url     = $media->site_url ? '(' . $media->site_url . ')' : '';
                                 $data['name'] = "$media->name $frequency $site_url";
                                 $data['link'] = $media->site_url;
-                            break;
+                                break;
                         } // end switch on type
                     } // end if results
 
                     else {
-                        $data['name']   = T_('Unknown');
-                        $data['link']   = '';
+                        $title_string = ($entry['Title'] && $entry['Album'] && $entry['Artist']) ?
+                                        $entry['Title'] . ' - ' . $entry['Album'] . ' - ' . $entry['Artist'] :
+                                        T_('Unknown');
+                        $data['name'] = $title_string;
+                        $data['link'] = '';
                     }
-
-                break;
+                    break;
             } // end switch on primary key type
 
             /* Optional Elements */
@@ -539,10 +543,12 @@ class AmpacheMpd extends localplay_controller
      * get_status
      * This returns bool/int values for features, loop, repeat and any other
      * features that this Localplay method supports.
+     * @return array
      */
     public function status()
     {
         $track = $this->_mpd->status['song'];
+        $array = array();
 
         /* Construct the Array */
         $array['state']     = $this->_mpd->status['state'];
@@ -595,4 +601,4 @@ class AmpacheMpd extends localplay_controller
 
         return false;
     } // connect
-} //end of AmpacheMpd
+} // end mpd.controller

@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */ ?>
 <tr id="flagged_<?php echo $libitem->id; ?>" class="<?php echo UI::flip_class(); ?>">
@@ -24,7 +24,7 @@
     <td class="cel_username"><?php echo $client->f_link; ?></td>
     <td class="cel_sticky"><?php echo $libitem->sticky; ?></td>
     <td class="cel_comment"><?php echo scrub_out($libitem->text); ?></td>
-    <td class="cel_date"><?php echo $libitem->date; ?></td>
+    <td class="cel_date"><?php echo $libitem->f_date; ?></td>
     <td class="cel_action">
         <a href="<?php echo $web_path; ?>/admin/shout.php?action=show_edit&amp;shout_id=<?php echo $libitem->id; ?>">
             <?php echo UI::get_icon('edit', T_('Edit')); ?>

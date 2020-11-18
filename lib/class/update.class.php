@@ -3,7 +3,7 @@ declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@ declare(strict_types=0);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -200,8 +200,40 @@ class Update
         $update_string = "* Add ui option for forcing unique items to playlists.<br />";
         $version[]     = array('version' => '400009', 'description' => $update_string);
 
-        $update_string = "* Add filter_users to catalog table<br />";
+        $update_string = "* Add a last_duration to search table to speed up access requests<br />";
         $version[]     = array('version' => '400010', 'description' => $update_string);
+
+        $update_string = "**IMPORTANT UPDATE NOTES**<br /><br />" .
+                         "To allow negatives the maximum value of `song`.`track` has been reduced. " .
+                         "This shouldn't affect anyone due to the large size allowed.<br /><br />" .
+                         "* Allow negative track numbers for albums. (-32,767 -> 32,767)<br />" .
+                         "* Truncate database tracks to 0 when greater than 32,767<br />";
+        $version[]     = array('version' => '400011', 'description' => $update_string);
+
+        $update_string = "* Add a rss token to allow the use of RSS unauthenticated feeds<br/ >";
+        $version[]     = array('version' => '400012', 'description' => $update_string);
+
+        $update_string = "* Extend Democratic cooldown beyond 255.<br/ >";
+        $version[]     = array('version' => '400013', 'description' => $update_string);
+
+        $update_string = "* Add last_duration to playlist<br/ > " .
+                         "* Add time to artist and album<br/ >";
+        $version[]     = array('version' => '400014', 'description' => $update_string);
+
+        $update_string = "* Extend artist time. smallint was too small<br/ > ";
+        $version[]     = array('version' => '400015', 'description' => $update_string);
+
+        $update_string = "* Extend album and make artist even bigger. This should cover everyone.<br/ > ";
+        $version[]     = array('version' => '400016', 'description' => $update_string);
+
+        $update_string = ""; // REMOVED update
+        $version[]     = array('version' => '400017', 'description' => $update_string);
+
+        $update_string = "* Extend video bitrate to unsigned. There's no reason for a negative bitrate.<br/ > ";
+        $version[]     = array('version' => '400018', 'description' => $update_string);
+
+        $update_string = "* Add filter_users to catalog table<br />";
+        $version[]     = array('version' => '400019', 'description' => $update_string);
 
         return $version;
     }
@@ -265,6 +297,7 @@ class Update
      */
     public static function run_update()
     {
+        debug_event('update.class', 'run_update: starting', 4);
         /* Nuke All Active session before we start the mojo */
         $sql = "TRUNCATE session";
         Dba::write($sql);
@@ -276,12 +309,11 @@ class Update
 
         // Run a check to make sure that they don't try to upgrade from a version that
         // won't work.
-        if ($current_version < '340002') {
-            echo '<p class="database-update">Database version too old, please upgrade to <a href="http://ampache.org/downloads/ampache-3.3.3.5.tar.gz">Ampache-3.3.3.5</a> first</p>';
+        if ($current_version < '380004') {
+            echo '<p class="database-update">Database version too old, please upgrade to <a href="https://github.com/ampache/ampache/releases/download/3.8.2/ampache-3.8.2_all.zip">Ampache-3.8.2</a> first</p>';
 
             return false;
         }
-
 
         $methods = get_class_methods('Update');
 
@@ -289,6 +321,7 @@ class Update
             self::$versions = self::populate_version();
         }
 
+        debug_event('update.class', 'run_update: checking versions', 4);
         foreach (self::$versions as $version) {
             // If it's newer than our current version let's see if a function
             // exists and run the bugger.
@@ -299,6 +332,7 @@ class Update
 
                     // If the update fails drop out
                     if ($success) {
+                        debug_event('update.class', 'run_update: successfully updated to ' . $version['version'], 3);
                         self::set_version('db_version', $version['version']);
                     } else {
                         AmpError::display('update');
@@ -309,13 +343,12 @@ class Update
             }
         } // end foreach version
 
-        // Once we've run all of the updates let's re-sync the character set as
-        // the user can change this between updates and cause mis-matches on any
-        // new tables.
-        Dba::reset_db_charset();
-
         // Let's also clean up the preferences unconditionally
+        debug_event('update.class', 'run_update: starting rebuild_all_preferences', 5);
         User::rebuild_all_preferences();
+
+        // Upgrade complete
+        debug_event('update.class', 'run_update: starting', 4);
 
         return true;
     } // run_update
@@ -404,10 +437,10 @@ class Update
         $retval = true;
 
         $sql = "INSERT INTO `preference` (`name`, `value`, `description`, `level`, `type`, `catagory`, `subcatagory`) " .
-            "VALUES ('browse_filter', '1', 'Show filter box on browse',25, 'boolean', 'interface', 'library')";
+            "VALUES ('browse_filter', '0', 'Show filter box on browse',25, 'boolean', 'interface', 'library')";
         $retval &= Dba::write($sql);
         $row_id = Dba::insert_id();
-        $sql    = "INSERT INTO `user_preference` VALUES (-1,?, '1')";
+        $sql    = "INSERT INTO `user_preference` VALUES (-1,?, '0')";
         $retval &= Dba::write($sql, array($row_id));
 
         $sql = "INSERT INTO `preference` (`name`, `value`, `description`, `level`, `type`, `catagory`, `subcatagory`) " .
@@ -1123,16 +1156,19 @@ class Update
         $sql    = "INSERT INTO `user_preference` VALUES (-1, ?, '0')";
         $retval &= Dba::write($sql, array($row_id));
 
-        $tables = [ 'cache_object_count', 'cache_object_count_run' ];
+        $tables    = [ 'cache_object_count', 'cache_object_count_run' ];
+        $collation = (AmpConfig::get('database_collation', 'utf8_unicode_ci'));
+        $charset   = (AmpConfig::get('database_charset', 'utf8'));
+        $engine    = ($charset == 'utf8mb4') ? 'InnoDB' : 'MYISAM';
         foreach ($tables as $table) {
             $sql = "CREATE TABLE IF NOT EXISTS `" . $table . "` (" .
               "`object_id` int(11) unsigned NOT NULL," .
-              "`object_type` enum('album','artist','song','playlist','genre','catalog','live_stream','video','podcast_episode') CHARACTER SET utf8 NOT NULL," .
+              "`object_type` enum('album','artist','song','playlist','genre','catalog','live_stream','video','podcast_episode') CHARACTER SET $charset NOT NULL," .
               "`count` int(11) unsigned NOT NULL DEFAULT '0'," .
               "`threshold` int(11) unsigned NOT NULL DEFAULT '0'," .
               "`count_type` varchar(16) NOT NULL," .
               "PRIMARY KEY (`object_id`, `object_type`, `threshold`, `count_type`)" .
-              ") ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;";
+              ") ENGINE=$engine DEFAULT CHARSET=$charset COLLATE=$collation;";
             $retval &= Dba::write($sql);
         }
 
@@ -1160,12 +1196,156 @@ class Update
 
         return $retval;
     }
+
     /**
      * update_400010
      *
-     * Add filter_users to catalog table
+     * Add a last_duration to searches to speed up access requests
      */
     public static function update_400010()
+    {
+        $retval = true;
+        $sql    = "ALTER TABLE `search` ADD `last_duration` INT(11) NULL;";
+        $retval &= Dba::write($sql);
+
+        return $retval;
+    }
+
+    /**
+     * update_400011
+     *
+     * Allow negative track numbers for albums
+     * Truncate database tracks to 0 when greater than 32767
+     */
+    public static function update_400011()
+    {
+        $retval = true;
+        $sql    = "UPDATE `song` SET `track` = 0 WHERE `track` > 32767;";
+        $retval &= Dba::write($sql);
+
+        $sql    = "ALTER TABLE `song` MODIFY COLUMN `track` SMALLINT DEFAULT NULL NULL;";
+        $retval &= Dba::write($sql);
+
+        return $retval;
+    }
+
+    /**
+     * update_400012
+     *
+     * Add a rss token to use an RSS unauthenticated feed.
+     */
+    public static function update_400012()
+    {
+        $retval = true;
+        $sql    = "ALTER TABLE `user` ADD `rsstoken` VARCHAR(255) NULL;";
+        $retval &= Dba::write($sql);
+
+        return $retval;
+    }
+
+    /**
+     * update_400013
+     *
+     * Extend Democratic cooldown beyond 255.
+     */
+    public static function update_400013()
+    {
+        $retval = true;
+        $sql    = "ALTER TABLE `democratic` MODIFY COLUMN `cooldown` int(11) unsigned DEFAULT NULL NULL;";
+        $retval &= Dba::write($sql);
+
+        return $retval;
+    }
+
+    /**
+     * update_400014
+     *
+     * Add last_duration to playlist
+     * Add time to artist and album
+     */
+    public static function update_400014()
+    {
+        $retval = true;
+
+        $sql    = "ALTER TABLE `playlist` ADD COLUMN `last_duration` int(11) unsigned NOT NULL DEFAULT '0'";
+        $retval &= Dba::write($sql);
+
+        $sql    = "ALTER TABLE `album` ADD COLUMN `time` smallint(5) unsigned NOT NULL DEFAULT '0'";
+        $retval &= Dba::write($sql);
+
+        $sql    = "ALTER TABLE `artist` ADD COLUMN `time` smallint(5) unsigned NOT NULL DEFAULT '0'";
+        $retval &= Dba::write($sql);
+
+        return $retval;
+    }
+    //
+
+    /**
+     * update_400015
+     *
+     * Extend artist time. smallint was too small
+     */
+    public static function update_400015()
+    {
+        $retval = true;
+
+        $sql    = "ALTER TABLE `artist` MODIFY COLUMN `time` int(11) unsigned DEFAULT NULL NULL;";
+        $retval &= Dba::write($sql);
+
+        return $retval;
+    }
+
+    /**
+     * update_400016
+     *
+     * Extend album and make artist even bigger. This should cover everyone.
+     */
+    public static function update_400016()
+    {
+        $retval = true;
+
+        $sql    = "ALTER TABLE `album` MODIFY COLUMN `time` bigint(20) unsigned DEFAULT NULL NULL;";
+        $retval &= Dba::write($sql);
+
+        $sql    = "ALTER TABLE `artist` MODIFY COLUMN `time` int(11) unsigned DEFAULT NULL NULL;";
+        $retval &= Dba::write($sql);
+
+        return $retval;
+    }
+
+    /**
+     * update_400017
+     *
+     * Removed.
+     */
+    public static function update_400017()
+    {
+        return true;
+    }
+
+    /**
+     * update_400018
+     *
+     * Extend video bitrate to unsigned. There's no reason for a negative bitrate.
+     */
+    public static function update_400018()
+    {
+        $retval = true;
+        $sql    = "UPDATE `video` SET `video_bitrate` = 0 WHERE `video_bitrate` < 0;";
+        $retval &= Dba::write($sql);
+
+        $sql    = "ALTER TABLE `video` MODIFY COLUMN `video_bitrate` int(11) unsigned DEFAULT NULL NULL;";
+        $retval &= Dba::write($sql);
+
+        return $retval;
+    }
+
+    /**
+     * update_400019
+     *
+     * Add filter_users to catalog table
+     */
+    public static function update_400019()
     {
         $retval = true;
         $sql    = "ALTER TABLE `catalog` ADD `filter_users` VARCHAR(255) NULL;";

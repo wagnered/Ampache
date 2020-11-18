@@ -3,7 +3,7 @@ declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2016 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@ declare(strict_types=0);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +33,6 @@ class JSON_Data
     // This is added so that we don't pop any webservers
     private static $limit  = 5000;
     private static $offset = 0;
-    private static $type   = '';
 
     /**
      * constructor
@@ -50,8 +49,7 @@ class JSON_Data
      *
      * This takes an int and changes the offset
      *
-     * @param    integer    $offset    (description here...)
-     * @return    void
+     * @param integer    $offset    (description here...)
      */
     public static function set_offset($offset)
     {
@@ -63,8 +61,8 @@ class JSON_Data
      *
      * This sets the limit for any ampache transactions
      *
-     * @param    integer    $limit    (description here...)
-     * @return    boolean
+     * @param  integer    $limit    (description here...)
+     * @return boolean
      */
     public static function set_limit($limit)
     {
@@ -72,11 +70,7 @@ class JSON_Data
             return false;
         }
 
-        if (strtolower($limit) == "none") {
-            self::$limit = null;
-        } else {
-            self::$limit = (int) ($limit);
-        }
+        self::$limit = (strtolower((string) $limit) == "none") ? null : (int) $limit;
 
         return true;
     } // set_limit
@@ -87,13 +81,17 @@ class JSON_Data
      * This generates a JSON Error message
      * nothing fancy here...
      *
-     * @param    integer    $code    Error code
-     * @param    string    $string    Error message
-     * @return    string    return error message JSON
+     * @param  string $code Error code
+     * @param  string $string Error message
+     * @param  string $action Error method
+     * @param  string $type Error type
+     * @return string return error message JSON
      */
-    public static function error($code, $string)
+    public static function error($code, $string, $action, $type)
     {
-        return json_encode(array("error" => array("code" => $code, "message" => $string)), JSON_PRETTY_PRINT);
+        $message = array("error" => array("errorCode" => $code, "errorAction" => $action, "errorType" => $type, "errorMessage" => $string));
+
+        return json_encode($message, JSON_PRETTY_PRINT);
     } // error
 
     /**
@@ -102,26 +100,46 @@ class JSON_Data
      * This generates a standard JSON Success message
      * nothing fancy here...
      *
-     * @param    string    $string    success message
-     * @return    string    return success message JSON
+     * @param  string $string success message
+     * @param  array $return_data
+     * @return string return success message JSON
      */
-    public static function success($string)
+    public static function success($string, $return_data = array())
     {
-        return json_encode(array("success" => $string), JSON_PRETTY_PRINT);
+        $message = array("success" => $string);
+        foreach ($return_data as $title => $data) {
+            $message[$title] = $data;
+        }
+
+        return json_encode($message, JSON_PRETTY_PRINT);
     } // success
 
     /**
-     * tags_string
+     * empty
      *
-     * This returns the formatted 'tags' string for an JSON document
-     * @param $tags
-     * @return string
+     * This generates a JSON empty object
+     * nothing fancy here...
+     *
+     * @param  string $type object type
+     * @return string return empty JSON message
      */
-    private static function tags_string($tags)
+    public static function empty($type)
+    {
+        return json_encode(array($type => array()), JSON_PRETTY_PRINT);
+    } // empty
+
+    /**
+     * genre_array
+     *
+     * This returns the formatted 'genre' array for a JSON document
+     * @param  array $tags
+     * @return array
+     */
+    private static function genre_array($tags)
     {
         $JSON = array();
 
-        if (is_array($tags)) {
+        if (!empty($tags)) {
             $atags = array();
             foreach ($tags as $tag_id => $data) {
                 if (array_key_exists($data['id'], $atags)) {
@@ -133,25 +151,27 @@ class JSON_Data
             }
 
             foreach ($atags as $id => $data) {
-                $JSON['id']    = $id;
-                $JSON['count'] = $data['count'];
-                $JSON['name']  = $data['name'];
+                array_push($JSON, array(
+                    "id" => (string) $id,
+                    "name" => $data['name']
+                ));
             }
         }
 
-        return json_encode($JSON, JSON_PRETTY_PRINT);
-    } // tags_string
+        return $JSON;
+    } // genre_array
 
     /**
      * indexes
      *
      * This returns tags to the user, in a pretty JSON document with the information
      *
-     * @param    array    $objects    (description here...)
-     * @param    string    $type    (description here...)
-     * @return string return JSON
+     * @param  array $objects (description here...)
+     * @param  string $type (description here...)
+     * @param  bool $include (add the extra songs details if a playlist)
+     * @return string JSON Object "artist"|"album"|"song"|"playlist"|"share"|"podcast"
      */
-    public static function indexes($objects, $type)
+    public static function indexes($objects, $type, $include = false)
     {
         //here is where we call the object type
         // 'artist'|'album'|'song'|'playlist'|'share'|'podcast'
@@ -163,37 +183,104 @@ class JSON_Data
             case 'artist':
                 return self::artists($objects);
             case 'playlist':
-                return self::playlists($objects);
+                return self::playlists($objects, $include);
             case 'share':
                 return self::shares($objects);
             case 'podcast':
                 return self::podcasts($objects);
+            case 'podcast_episode':
+                return self::podcast_episodes($objects);
             default:
-                return self::error('401', T_('Wrong object type ' . $type));
+                /* HINT: Requested object string/id/type ("album", "myusername", "some song title", 1298376) */
+                return self::error('4710', printf(T_('Bad Request: %s'), $type), 'indexes', 'type');
         }
-    }
+    } // indexes
 
     /**
-     * tags
+     * licenses
      *
-     * This returns tags to the user, in a pretty JSON document with the information
+     * This returns licenses to the user, in a pretty JSON document with the information
      *
-     * @param    array    $tags    (description here...)
-     * @return string return JSON
+     * @param  integer[] $licenses
+     * @return string JSON Object "license"
      */
-    public static function tags($tags)
+    public static function licenses($licenses)
     {
-        if (count($tags) > self::$limit or self::$offset > 0) {
-            $tags = array_splice($tags, self::$offset, self::$limit);
+        if ((count($licenses) > self::$limit || self::$offset > 0) && self::$limit) {
+            $licenses = array_splice($licenses, self::$offset, self::$limit);
         }
 
         $JSON = [];
 
+        foreach ($licenses as $license_id) {
+            $license = new License($license_id);
+            array_push($JSON, array(
+                "id" => (string) $license_id,
+                "name" => $license->name,
+                "description" => $license->description,
+                "external_link" => $license->external_link
+            ));
+        } // end foreach
+
+        return json_encode(array("license" => $JSON), JSON_PRETTY_PRINT);
+    } // licenses
+
+    /**
+     * labels
+     *
+     * This returns labels to the user, in a pretty JSON document with the information
+     *
+     * @param  integer[] $labels
+     * @return string JSON Object "label"
+     */
+    public static function labels($labels)
+    {
+        if ((count($labels) > self::$limit || self::$offset > 0) && self::$limit) {
+            $labels = array_splice($labels, self::$offset, self::$limit);
+        }
+
+        $JSON = [];
+
+        foreach ($labels as $label_id) {
+            $label = new Label($label_id);
+            $label->format();
+            array_push($JSON, array(
+                "id" => (string) $label_id,
+                "name" => $label->f_name,
+                "artists" => $label->artists,
+                "summary" => $label->summary,
+                "external_link" => $label->link,
+                "address" => $label->address,
+                "category" => $label->category,
+                "email" => $label->email,
+                "website" => $label->website,
+                "user" => $label->user,
+            ));
+        } // end foreach
+
+        return json_encode(array("label" => $JSON), JSON_PRETTY_PRINT);
+    } // labels
+
+    /**
+     * genres
+     *
+     * This returns genres to the user, in a pretty JSON document with the information
+     *
+     * @param  array    $tags    (description here...)
+     * @return string  JSON Object "genre"
+     */
+    public static function genres($tags)
+    {
+        if ((count($tags) > self::$limit || self::$offset > 0) && self::$limit) {
+            $tags = array_splice($tags, self::$offset, self::$limit);
+        }
+
+        $JSON = [];
         foreach ($tags as $tag_id) {
             $tag    = new Tag($tag_id);
             $counts = $tag->count();
             array_push($JSON, array(
-                "id" => $tag_id,
+                "id" => (string) $tag_id,
                 "name" => $tag->name,
                 "albums" => (int) $counts['album'],
                 "artists" => (int) $counts['artist'],
@@ -204,8 +291,8 @@ class JSON_Data
             ));
         } // end foreach
 
-        return json_encode($JSON, JSON_PRETTY_PRINT);
-    } // tags
+        return json_encode(array("genre" => $JSON), JSON_PRETTY_PRINT);
+    } // genres
 
     /**
      * artists
@@ -213,15 +300,15 @@ class JSON_Data
      * This takes an array of artists and then returns a pretty JSON document with the information
      * we want
      *
-     * @param array $artists (description here...)
-     * @param array $include
-     * @param boolean $user_id
-     * @param bool $encode
-     * @return array|string return JSON
+     * @param  integer[] $artists (description here...)
+     * @param  array $include
+     * @param  integer|null $user_id
+     * @param  bool $encode
+     * @return array|string JSON Object "artist"
      */
-    public static function artists($artists, $include = [], $user_id = false, $encode = true)
+    public static function artists($artists, $include = [], $user_id = null, $encode = true)
     {
-        if (count($artists) > self::$limit or self::$offset > 0) {
+        if ((count($artists) > self::$limit || self::$offset > 0) && self::$limit) {
             $artists = array_splice($artists, self::$offset, self::$limit);
         }
 
@@ -236,43 +323,39 @@ class JSON_Data
 
             $rating     = new Rating($artist_id, 'artist');
             $flag       = new Userflag($artist_id, 'artist');
-            $tag_string = self::tags_string($artist->tags);
 
             // Build the Art URL, include session
             $art_url = AmpConfig::get('web_path') . '/image.php?object_id=' . $artist_id . '&object_type=artist&auth=' . scrub_out(Core::get_request('auth'));
 
             // Handle includes
-            if (in_array("albums", $include)) {
-                $albums = self::albums($artist->get_albums(), $include, false, false);
-            } else {
-                $albums = ($artist->albums ?: 0);
-            }
-            if (in_array("songs", $include)) {
-                $songs = self::songs($artist->get_songs(), false, false);
-            } else {
-                $songs = ($artist->songs ?: 0);
-            }
+            $albums = (in_array("albums", $include))
+                ? self::albums($artist->get_albums(), array(), $user_id, false)
+                : ($artist->albums ?: 0);
+            $songs = (in_array("songs", $include))
+                ? self::songs($artist->get_songs(), $user_id, false)
+                : ($artist->songs ?: 0);
 
             array_push($JSON, array(
-                "id" => $artist->id,
+                "id" => (string) $artist->id,
                 "name" => $artist->f_full_name,
-                "tags" => $tag_string,
-                "albums" => ($albums ?: null),
-                "songs" => ($songs ?: null),
+                "albums" => $albums,
+                "songs" => $songs,
+                "genre" => self::genre_array($artist->tags),
                 "art" => $art_url,
                 "flag" => (!$flag->get_flag($user_id, false) ? 0 : 1),
-                "preciserating" => ($rating->get_user_rating() ?: 0),
-                "rating" => ($rating->get_user_rating() ?: 0),
-                "averagerating" => ($rating->get_average_rating() ?: 0),
+                "preciserating" => ($rating->get_user_rating() ?: null),
+                "rating" => ($rating->get_user_rating() ?: null),
+                "averagerating" => ($rating->get_average_rating() ?: null),
                 "mbid" => $artist->mbid,
                 "summary" => $artist->summary,
+                "time" => $artist->time,
                 "yearformed" => $artist->yearformed,
                 "placeformed" => $artist->placeformed
             ));
         } // end foreach artists
 
         if ($encode) {
-            return json_encode($JSON, JSON_PRETTY_PRINT);
+            return json_encode(array("artist" => $JSON), JSON_PRETTY_PRINT);
         }
 
         return $JSON;
@@ -283,15 +366,15 @@ class JSON_Data
      *
      * This echos out a standard albums JSON document, it pays attention to the limit
      *
-     * @param array $albums (description here...)
-     * @param array $include
-     * @param boolean $user_id
-     * @param bool $encode
-     * @return array|string
+     * @param  integer[] $albums (description here...)
+     * @param  array $include
+     * @param  integer|null $user_id
+     * @param  bool $encode
+     * @return array|string JSON Object "album"
      */
-    public static function albums($albums, $include = [], $user_id = false, $encode = true)
+    public static function albums($albums, $include = [], $user_id = null, $encode = true)
     {
-        if (count($albums) > self::$limit or self::$offset > 0) {
+        if ((count($albums) > self::$limit || self::$offset > 0) && self::$limit) {
             $albums = array_splice($albums, self::$offset, self::$limit);
         }
 
@@ -311,55 +394,54 @@ class JSON_Data
 
             $theArray = [];
 
-            $theArray["id"]   = $album->id;
+            $theArray["id"]   = (string) $album->id;
             $theArray["name"] = $album->name;
 
             // Do a little check for artist stuff
             if ($album->album_artist_name != "") {
                 $theArray['artist'] = array(
-                    "id" => $album->artist_id,
+                    "id" => (string) $album->artist_id,
                     "name" => $album->album_artist_name
                 );
             } elseif ($album->artist_count != 1) {
                 $theArray['artist'] = array(
-                    "id" => 0,
+                    "id" => "0",
                     "name" => 'Various'
                 );
             } else {
                 $theArray['artist'] = array(
-                    "id" => $album->artist_id,
+                    "id" => (string) $album->artist_id,
                     "name" => $album->artist_name
                 );
             }
 
             // Handle includes
-            if (in_array("songs", $include)) {
-                $songs = self::songs($album->get_songs(), false, false);
-            } else {
-                $songs = $album->song_count;
-            }
+            $songs = (in_array("songs", $include))
+                ? self::songs($album->get_songs(), $user_id, false)
+                : $album->song_count;
 
-            //count multiple disks
+            // count multiple disks
             if ($album->allow_group_disks) {
                 $disk = (count($album->album_suite) <= 1) ? $album->disk : count($album->album_suite);
             }
 
-            $theArray['year']          = $album->year;
+            $theArray['time']          = (int) $album->total_duration;
+            $theArray['year']          = (int) $album->year;
             $theArray['tracks']        = $songs;
-            $theArray['disk']          = $disk;
-            $theArray['tags']          = self::tags_string($album->tags);
+            $theArray['disk']          = (int) $disk;
+            $theArray['genre']         = self::genre_array($album->tags);
             $theArray['art']           = $art_url;
             $theArray['flag']          = (!$flag->get_flag($user_id, false) ? 0 : 1);
-            $theArray['preciserating'] = ($rating->get_user_rating() ?: 0);
-            $theArray['rating']        = ($rating->get_user_rating() ?: 0);
-            $theArray['averagerating'] = $rating->get_average_rating();
+            $theArray['preciserating'] = ($rating->get_user_rating() ?: null);
+            $theArray['rating']        = ($rating->get_user_rating() ?: null);
+            $theArray['averagerating'] = ($rating->get_average_rating() ?: null);
             $theArray['mbid']          = $album->mbid;
 
             array_push($JSON, $theArray);
         } // end foreach
 
         if ($encode) {
-            return json_encode($JSON, JSON_PRETTY_PRINT);
+            return json_encode(array("album" => $JSON), JSON_PRETTY_PRINT);
         }
 
         return $JSON;
@@ -368,14 +450,15 @@ class JSON_Data
     /**
      * playlists
      *
-     * This takes an array of playlist ids and then returns a nice pretty XML document
+     * This takes an array of playlist ids and then returns a nice pretty JSON document
      *
-     * @param array $playlists (description here...)
-     * @return string return JSON
+     * @param  array $playlists (description here...)
+     * @param  bool $songs
+     * @return string JSON Object "playlist"
      */
-    public static function playlists($playlists)
+    public static function playlists($playlists, $songs = false)
     {
-        if (count($playlists) > self::$limit || self::$offset > 0) {
+        if ((count($playlists) > self::$limit || self::$offset > 0) && self::$limit) {
             $playlists = array_slice($playlists, self::$offset, self::$limit);
         }
 
@@ -388,39 +471,52 @@ class JSON_Data
              * smartlist = 'smart_1'
              * playlist  = 1000000
              */
-            if (str_replace('smart_', '', (string) $playlist_id) === (string) $playlist_id) {
-                $playlist     = new Playlist($playlist_id);
-                $playlist_id  = $playlist->id;
+            if ((int) $playlist_id === 0) {
+                $playlist = new Search((int) str_replace('smart_', '', (string) $playlist_id));
+                $playlist->format();
+
+                $playlist_name = Search::get_name_byid(str_replace('smart_', '', (string) $playlist_id));
+                $playlist_user = ($playlist->type !== 'public')
+                    ? $playlist->f_user
+                    : $playlist->type;
+
+                $last_count     = ((int) $playlist->last_count > 0) ? $playlist->last_count : 5000;
+                $playitem_total = ($playlist->limit == 0) ? $last_count : $playlist->limit;
+                $playlist_type  = $playlist->type;
+            } else {
+                $playlist    = new Playlist($playlist_id);
+                $playlist_id = $playlist->id;
                 $playlist->format();
 
                 $playlist_name  = $playlist->name;
                 $playlist_user  = $playlist->f_user;
                 $playitem_total = $playlist->get_media_count('song');
                 $playlist_type  = $playlist->type;
-            } else {
-                $playlist     = new Search(str_replace('smart_', '', (string) $playlist_id));
-                $playlist->format();
-
-                $playlist_name  = Search::get_name_byid(str_replace('smart_', '', (string) $playlist_id));
-                if ($playlist->type !== 'public') {
-                    $playlist_user  = $playlist->f_user;
-                } else {
-                    $playlist_user  = $playlist->type;
-                }
-                $last_count     = ((int) $playlist->last_count > 0) ? $playlist->last_count : 5000;
-                $playitem_total = ($playlist->limit == 0) ? $last_count : $playlist->limit;
-                $playlist_type  = $playlist->type;
             }
+
+            if ($songs) {
+                $items          = array();
+                $trackcount     = 1;
+                $playlisttracks = $playlist->get_items();
+                foreach ($playlisttracks as $objects) {
+                    array_push($items, array("id" => (string) $objects['object_id'], "playlisttrack" => $trackcount));
+                    $trackcount++;
+                }
+            } else {
+                $items = ($playitem_total ?: 0);
+            }
+
             // Build this element
             array_push($allPlaylists, [
-                "id" => $playlist_id,
+                "id" => (string) $playlist_id,
                 "name" => $playlist_name,
                 "owner" => $playlist_user,
-                "items" => $playitem_total,
-                "type" => $playlist_type]);
+                "items" => $items,
+                "type" => $playlist_type]
+            );
         } // end foreach
 
-        return json_encode($allPlaylists, JSON_PRETTY_PRINT);
+        return json_encode(array("playlist" => $allPlaylists), JSON_PRETTY_PRINT);
     } // playlists
 
     /**
@@ -428,12 +524,12 @@ class JSON_Data
      *
      * This returns shares to the user, in a pretty json document with the information
      *
-     * @param array $shares (description here...)
-     * @return string return JSON
+     * @param  array $shares (description here...)
+     * @return string JSON Object "share"
      */
     public static function shares($shares)
     {
-        if (count($shares) > self::$limit || self::$offset > 0) {
+        if ((count($shares) > self::$limit || self::$offset > 0) && self::$limit) {
             $shares = array_splice($shares, self::$offset, self::$limit);
         }
 
@@ -457,7 +553,7 @@ class JSON_Data
             $share_description    = $share->description;
             // Build this element
             array_push($allShares, [
-                "id" => $share_id,
+                "id" => (string) $share_id,
                 "name" => $share_name,
                 "owner" => $share_user,
                 "allow_stream" => $share_allow_stream,
@@ -474,20 +570,60 @@ class JSON_Data
                 "description" => $share_description]);
         } // end foreach
 
-        return json_encode($allShares, JSON_PRETTY_PRINT);
+        return json_encode(array("share" => $allShares), JSON_PRETTY_PRINT);
     } // shares
+
+    /**
+     * bookmarks
+     *
+     * This returns bookmarks to the user, in a pretty json document with the information
+     *
+     * @param  array $bookmarks (description here...)
+     * @return string JSON Object "bookmark"
+     */
+    public static function bookmarks($bookmarks)
+    {
+        if ((count($bookmarks) > self::$limit || self::$offset > 0) && self::$limit) {
+            $bookmarks = array_splice($bookmarks, self::$offset, self::$limit);
+        }
+
+        $allBookmarks = [];
+        foreach ($bookmarks as $bookmark_id) {
+            $bookmark = new Bookmark($bookmark_id);
+            $bookmark->format();
+            $bookmark_user          = $bookmark->f_user;
+            $bookmark_object_type   = $bookmark->object_type;
+            $bookmark_object_id     = $bookmark->object_id;
+            $bookmark_position      = $bookmark->position;
+            $bookmark_comment       = $bookmark->comment;
+            $bookmark_creation_date = $bookmark->creation_date;
+            $bookmark_update_date   = $bookmark->update_date;
+            // Build this element
+            array_push($allBookmarks, [
+                "id" => (string) $bookmark_id,
+                "owner" => $bookmark_user,
+                "object_type" => $bookmark_object_type,
+                "object_id" => $bookmark_object_id,
+                "position" => $bookmark_position,
+                "client" => $bookmark_comment,
+                "creation_date" => $bookmark_creation_date,
+                "update_date" => $bookmark_update_date]);
+        } // end foreach
+
+        return json_encode(array("bookmark" => $allBookmarks), JSON_PRETTY_PRINT);
+    } // bookmarks
 
     /**
      * catalogs
      *
      * This returns catalogs to the user, in a pretty json document with the information
      *
-     * @param integer[] $catalogs group of catalog id's
-     * @return string return JSON
+     * @param  integer[] $catalogs group of catalog id's
+     * @return string JSON Object "catalog"
      */
     public static function catalogs($catalogs)
     {
-        if (count($catalogs) > self::$limit || self::$offset > 0) {
+        if ((count($catalogs) > self::$limit || self::$offset > 0) && self::$limit) {
             $catalogs = array_splice($catalogs, self::$offset, self::$limit);
         }
 
@@ -507,7 +643,7 @@ class JSON_Data
             $catalog_sort_pattern   = $catalog->sort_pattern;
             // Build this element
             array_push($allCatalogs, [
-                "id" => $catalog_id,
+                "id" => (string) $catalog_id,
                 "name" => $catalog_name,
                 "type" => $catalog_type,
                 "gather_types" => $catalog_gather_types,
@@ -520,7 +656,7 @@ class JSON_Data
                 "sort_pattern" => $catalog_sort_pattern]);
         } // end foreach
 
-        return json_encode($allCatalogs, JSON_PRETTY_PRINT);
+        return json_encode(array("catalog" => $allCatalogs), JSON_PRETTY_PRINT);
     } // catalogs
 
     /**
@@ -528,13 +664,13 @@ class JSON_Data
      *
      * This returns podcasts to the user, in a pretty json document with the information
      *
-     * @param array $podcasts (description here...)
-     * @param boolean $episodes include the episodes of the podcast
-     * @return string return JSON
+     * @param  array $podcasts (description here...)
+     * @param  boolean $episodes include the episodes of the podcast
+     * @return string JSON Object "podcast"
      */
     public static function podcasts($podcasts, $episodes = false)
     {
-        if (count($podcasts) > self::$limit || self::$offset > 0) {
+        if ((count($podcasts) > self::$limit || self::$offset > 0) && self::$limit) {
             $podcasts = array_splice($podcasts, self::$offset, self::$limit);
         }
 
@@ -559,7 +695,7 @@ class JSON_Data
             }
             // Build this element
             array_push($allPodcasts, [
-                "id" => $podcast_id,
+                "id" => (string) $podcast_id,
                 "name" => $podcast_name,
                 "description" => $podcast_description,
                 "language" => $podcast_language,
@@ -573,7 +709,7 @@ class JSON_Data
                 "podcast_episode" => $podcast_episodes]);
         } // end foreach
 
-        return json_encode($allPodcasts, JSON_PRETTY_PRINT);
+        return json_encode(array("podcast" => $allPodcasts), JSON_PRETTY_PRINT);
     } // podcasts
 
     /**
@@ -583,11 +719,11 @@ class JSON_Data
      *
      * @param  array   $podcast_episodes    (description here...)
      * @param  boolean $simple just return the data as an array for pretty somewhere else
-     * @return array|string return JSON
+     * @return array|string JSON Object "podcast_episode"
      */
     public static function podcast_episodes($podcast_episodes, $simple = false)
     {
-        if (count($podcast_episodes) > self::$limit || self::$offset > 0) {
+        if ((count($podcast_episodes) > self::$limit || self::$offset > 0) && self::$limit) {
             $podcast_episodes = array_splice($podcast_episodes, self::$offset, self::$limit);
         }
         $allEpisodes = array();
@@ -595,7 +731,7 @@ class JSON_Data
             $episode = new Podcast_Episode($episode_id);
             $episode->format();
             array_push($allEpisodes, [
-                "id" => $episode_id,
+                "id" => (string) $episode_id,
                 "name" => $episode->f_title,
                 "description" => $episode->f_description,
                 "category" => $episode->f_category,
@@ -607,13 +743,14 @@ class JSON_Data
                 "filelength" => $episode->f_time_h,
                 "filesize" => $episode->f_size,
                 "filename" => $episode->f_file,
-                "url" => $episode->link]);
+                "url" => $episode->link,
+                "played" => $episode->played]);
         }
         if ($simple) {
             return $allEpisodes;
         }
 
-        return json_encode($allEpisodes, JSON_PRETTY_PRINT);
+        return json_encode(array("podcast_episode" => $allEpisodes), JSON_PRETTY_PRINT);
     } // podcast_episodes
 
     /**
@@ -621,14 +758,14 @@ class JSON_Data
      *
      * This returns an array of songs populated from an array of song ids.
      * (Spiffy isn't it!)
-     * @param $songs
-     * @param boolean $user_id
-     * @param bool $encode
-     * @return array|string
+     * @param  integer[] $songs
+     * @param  integer|null $user_id
+     * @param  bool $encode
+     * @return array|string JSON Object "song"
      */
-    public static function songs($songs, $user_id = false, $encode =  true)
+    public static function songs($songs, $user_id = null, $encode = true)
     {
-        if (count($songs) > self::$limit or self::$offset > 0) {
+        if ((count($songs) > self::$limit || self::$offset > 0) && self::$limit) {
             $songs = array_slice($songs, self::$offset, self::$limit);
         }
 
@@ -647,56 +784,58 @@ class JSON_Data
                 continue;
             }
 
-
             $song->format();
-            //TODO: $tag_string
             $rating  = new Rating($song_id, 'song');
             $flag    = new Userflag($song_id, 'song');
             $art_url = Art::url($song->album, 'album', $_REQUEST['auth']);
             $playlist_track++;
 
             $ourSong = array(
-                "id" => $song->id,
+                "id" => (string) $song->id,
                 "title" => $song->title,
                 "name" => $song->title,
                 "artist" => array(
-                    "id" => $song->artist,
+                    "id" => (string) $song->artist,
                     "name" => $song->get_artist_name()),
                 "album" => array(
-                    "id" => $song->album,
+                    "id" => (string) $song->album,
                     "name" => $song->get_album_name()),
+                "genre" => self::genre_array($song->tags)
             );
-            if ($song->albumartist) {
-                $ourSong['albumartist'] = array(
-                    "id" => $song->albumartist,
-                    "name" => $song->get_album_artist_name()
-                );
-            }
+            //always get album artist
+            $ourSong['albumartist'] = array(
+                "id" => (string) $song->albumartist,
+                "name" => $song->get_album_artist_name()
+            );
 
-            $ourSong['filename']              = $song->file;
-            $ourSong['track']                 = $song->track;
-            $ourSong['playlisttrack']         = $playlist_track;
-            $ourSong['time']                  = (int) $song->time;
-            $ourSong['year']                  = $song->year;
-            $ourSong['bitrate']               = $song->bitrate;
-            $ourSong['rate']                  = $song->rate;
-            $ourSong['mode']                  = $song->mode;
-            $ourSong['mime']                  = $song->mime;
-            $ourSong['url']                   = Song::play_url($song->id, '', 'api', false, $user_id);
-            $ourSong['size']                  = $song->size;
-            $ourSong['mbid']                  = $song->mbid;
-            $ourSong['album_mbid']            = $song->album_mbid;
-            $ourSong['artist_mbid']           = $song->artist_mbid;
-            $ourSong['albumartist_mbid']      = $song->albumartist_mbid;
-            $ourSong['art']                   = $art_url;
-            $ourSong['flag']                  = (!$flag->get_flag($user_id, false) ? 0 : 1);
-            $ourSong['preciserating']         = ($rating->get_user_rating() ?: 0);
-            $ourSong['rating']                = ($rating->get_user_rating() ?: 0);
-            $ourSong['averagerating']         = ($rating->get_average_rating() ?: 0);
-            $ourSong['playcount']             = (int) $song->played;
-            $ourSong['composer']              = $song->composer;
-            $ourSong['channels']              = $song->channels;
-            $ourSong['comment']               = $song->comment;
+            $ourSong['filename']         = $song->file;
+            $ourSong['track']            = (int) $song->track;
+            $ourSong['playlisttrack']    = $playlist_track;
+            $ourSong['time']             = (int) $song->time;
+            $ourSong['year']             = (int) $song->year;
+            $ourSong['bitrate']          = (int) $song->bitrate;
+            $ourSong['rate']             = (int) $song->rate;
+            $ourSong['mode']             = $song->mode;
+            $ourSong['mime']             = $song->mime;
+            $ourSong['url']              = Song::play_url($song->id, '', 'api', false, $user_id);
+            $ourSong['size']             = (int) $song->size;
+            $ourSong['mbid']             = $song->mbid;
+            $ourSong['album_mbid']       = $song->album_mbid;
+            $ourSong['artist_mbid']      = $song->artist_mbid;
+            $ourSong['albumartist_mbid'] = $song->albumartist_mbid;
+            $ourSong['art']              = $art_url;
+            $ourSong['flag']             = (!$flag->get_flag($user_id, false) ? 0 : 1);
+            $ourSong['preciserating']    = ($rating->get_user_rating() ?: null);
+            $ourSong['rating']           = ($rating->get_user_rating() ?: null);
+            $ourSong['averagerating']    = ($rating->get_average_rating() ?: null);
+            $ourSong['playcount']        = (int) $song->played;
+            $ourSong['catalog']          = (int) $song->catalog;
+            $ourSong['composer']         = $song->composer;
+            $ourSong['channels']         = $song->channels;
+            $ourSong['comment']          = $song->comment;
+            if (AmpConfig::get('licensing') && $song->f_license) {
+                $ourSong['license'] = $song->f_license;
+            }
             $ourSong['publisher']             = $song->label;
             $ourSong['language']              = $song->language;
             $ourSong['replaygain_album_gain'] = $song->replaygain_album_gain;
@@ -710,17 +849,12 @@ class JSON_Data
                     $ourSong[$meta_name] = $metadata->getData();
                 }
             }
-            $genre = [];
-            foreach ($song->tags as $tag) {
-                array_push($genre, $tag['name']);
-            }
-            $ourSong['genre'] = $genre;
 
             array_push($JSON, $ourSong);
         } // end foreach
 
         if ($encode) {
-            return json_encode($JSON, JSON_PRETTY_PRINT);
+            return json_encode(array("song" => $JSON), JSON_PRETTY_PRINT);
         }
 
         return $JSON;
@@ -731,13 +865,13 @@ class JSON_Data
      *
      * This builds the JSON document for displaying video objects
      *
-     * @param    array    $videos    (description here...)
-     * @param integer $user_id
-     * @return string return JSON
+     * @param  array    $videos    (description here...)
+     * @param  integer $user_id
+     * @return string JSON Object "video"
      */
     public static function videos($videos, $user_id)
     {
-        if (count($videos) > self::$limit or self::$offset > 0) {
+        if ((count($videos) > self::$limit || self::$offset > 0) && self::$limit) {
             $videos = array_slice($videos, self::$offset, self::$limit);
         }
 
@@ -746,17 +880,17 @@ class JSON_Data
             $video = new Video($video_id);
             $video->format();
             array_push($JSON, array(
-                "id" => $video->id,
+                "id" => (string) $video->id,
                 "title" => $video->title,
                 "mime" => $video->mime,
                 "resolution" => $video->f_resolution,
-                "size" => $video->size,
-                "tags" => self::tags_string($video->tags),
+                "size" => (int) $video->size,
+                "genre" => self::genre_array($video->tags),
                 "url" => Video::play_url($video->id, '', 'api', false, $user_id)
             ));
         } // end foreach
 
-        return json_encode($JSON, JSON_PRETTY_PRINT);
+        return json_encode(array("video" => $JSON), JSON_PRETTY_PRINT);
     } // videos
 
     /**
@@ -765,11 +899,11 @@ class JSON_Data
      * This handles creating an JSON document for democratic items, this can be a little complicated
      * due to the votes and all of that
      *
-     * @param integer[] $object_ids Object IDs
-     * @param boolean $user_id
-     * @return string    return JSON
+     * @param  integer[] $object_ids Object IDs
+     * @param  integer|null $user_id
+     * @return string JSON Object "song"
      */
-    public static function democratic($object_ids=array(), $user_id = false)
+    public static function democratic($object_ids = array(), $user_id = null)
     {
         if (!is_array($object_ids)) {
             $object_ids = array();
@@ -783,37 +917,29 @@ class JSON_Data
             $song = new $data['object_type']($data['object_id']);
             $song->format();
 
-            //FIXME: This is duplicate code and so wrong, functions need to be improved
-            $tag           = new Tag($song->tags['0']);
-            $song->genre   = $tag->id;
-            $song->f_genre = $tag->name;
-
-            $tag_string = self::tags_string($song->tags); //TODO
-
-            $rating = new Rating($song->id, 'song');
-
+            $rating  = new Rating($song->id, 'song');
             $art_url = Art::url($song->album, 'album', $_REQUEST['auth']);
 
             array_push($JSON, array(
-                "id" => $song->id,
+                "id" => (string) $song->id,
                 "title" => $song->title,
-                "artist" => array("id" => $song->artist, "name" => $song->f_artist_full),
-                "album" => array("id" => $song->album, "name" => $song->f_album_full),
-                "genre" => array("id" => $song->genre, "name" => $song->f_genre),
-                "track" => $song->track,
-                "time" => $song->time,
+                "artist" => array("id" => (string) $song->artist, "name" => $song->f_artist_full),
+                "album" => array("id" => (string) $song->album, "name" => $song->f_album_full),
+                "genre" => self::genre_array($song->tags),
+                "track" => (int) $song->track,
+                "time" => (int) $song->time,
                 "mime" => $song->mime,
                 "url" => Song::play_url($song->id, '', 'api', false, $user_id),
-                "size" => $song->size,
+                "size" => (int) $song->size,
                 "art" => $art_url,
-                "preciserating" => $rating->get_user_rating(),
-                "rating" => $rating->get_user_rating(),
-                "averagerating" => $rating->get_average_rating(),
+                "preciserating" => ($rating->get_user_rating() ?: null),
+                "rating" => ($rating->get_user_rating() ?: null),
+                "averagerating" => ($rating->get_average_rating() ?: null),
                 "vote" => $democratic->get_vote($row_id)
             ));
         } // end foreach
 
-        return json_encode($JSON, JSON_PRETTY_PRINT);
+        return json_encode(array("song" => $JSON), JSON_PRETTY_PRINT);
     } // democratic
 
     /**
@@ -823,15 +949,14 @@ class JSON_Data
      *
      * @param  User    $user    User
      * @param  boolean $fullinfo
-     * @return string  return JSON
+     * @return string JSON Object "user"
      */
     public static function user(User $user, $fullinfo)
     {
-        $JSON = array();
         $user->format();
         if ($fullinfo) {
-            $JSON['user'] = array(
-                "id" => $user->id,
+            $JSON = array(
+                "id" => (string) $user->id,
                 "username" => $user->username,
                 "auth" => $user->apikey,
                 "email" => $user->email,
@@ -846,8 +971,8 @@ class JSON_Data
                 "city" => $user->city
             );
         } else {
-            $JSON['user'] = array(
-                "id" => $user->id,
+            $JSON = array(
+                "id" => (string) $user->id,
                 "username" => $user->username,
                 "create_date" => $user->create_date,
                 "last_seen" => $user->last_seen,
@@ -858,10 +983,10 @@ class JSON_Data
         }
 
         if ($user->fullname_public) {
-            $JSON['user']['fullname'] = $user->fullname;
+            $JSON['fullname'] = $user->fullname;
         }
 
-        return json_encode($JSON, JSON_PRETTY_PRINT);
+        return json_encode(array("user" => $JSON), JSON_PRETTY_PRINT);
     } // user
 
     /**
@@ -869,18 +994,21 @@ class JSON_Data
      *
      * This handles creating an JSON document for an user list
      *
-     * @param    integer[]    $users    User identifier list
-     * @return string return JSON
+     * @param  integer[]    $users    User identifier list
+     * @return string JSON Object "user"
      */
     public static function users($users)
     {
         $JSON = [];
         foreach ($users as $user_id) {
             $user = new User($user_id);
-            array_push($JSON, $user->username);
-        }
+            array_push($JSON, array(
+                "id" => (string) $user_id,
+                "username" => $user->username
+            ));
+        } // end foreach
 
-        return json_encode($JSON, JSON_PRETTY_PRINT);
+        return json_encode(array("user" => $JSON), JSON_PRETTY_PRINT);
     } // users
 
     /**
@@ -888,8 +1016,8 @@ class JSON_Data
      *
      * This handles creating an JSON document for a shout list
      *
-     * @param    integer[]    $shouts    Shout identifier list
-     * @return string return JSON
+     * @param  integer[]    $shouts    Shout identifier list
+     * @return string JSON Object "shout"
      */
     public static function shouts($shouts)
     {
@@ -897,19 +1025,22 @@ class JSON_Data
         foreach ($shouts as $shout_id) {
             $shout = new Shoutbox($shout_id);
             $shout->format();
-            $user     = new User($shout->user);
+            $user       = new User($shout->user);
+            $user_array = [];
+            array_push($user_array[], array(
+                "id" => (string) $user->id,
+                "username" => $user->username
+            ));
             $ourArray = array(
-                "id" => $shout_id,
+                "id" => (string) $shout_id,
                 "date" => $shout->date,
-                "text" => $shout->text
+                "text" => $shout->text,
+                "user" => $user_array
             );
-            if ($user->id) {
-                $ourArray['username'] = $user->username;
-            }
             array_push($JSON, $ourArray);
         }
 
-        return json_encode($JSON, JSON_PRETTY_PRINT);
+        return json_encode(array("shout" => $JSON), JSON_PRETTY_PRINT);
     } // shouts
 
     /**
@@ -917,32 +1048,32 @@ class JSON_Data
      *
      * This handles creating an JSON document for an activity list
      *
-     * @param    integer[]    $activities    Activity identifier list
-     * @return string return JSON
+     * @param  integer[]    $activities    Activity identifier list
+     * @return string JSON Object "activity"
      */
     public static function timeline($activities)
     {
-        $JSON             = array();
-        $JSON['timeline'] = []; // To match the XML style, IMO kinda uselesss
-        foreach ($activities as $aid) {
-            $activity = new Useractivity($aid);
-            $user     = new User($activity->user);
+        $JSON = array();
+        foreach ($activities as $activity_id) {
+            $activity   = new Useractivity($activity_id);
+            $user       = new User($activity->user);
+            $user_array = [];
+            array_push($user_array[], array(
+                "id" => (string) $user->id,
+                "username" => $user->username
+            ));
             $ourArray = array(
-                "id" => $aid,
+                "id" => (string) $activity_id,
                 "data" => $activity->activity_date,
                 "object_type" => $activity->object_type,
                 "object_id" => $activity->object_id,
-                "action" => $activity->action
+                "action" => $activity->action,
+                "user" => $user_array
             );
 
-            if ($user->id) {
-                $ourArray['username'] = $user->username;
-            }
-            array_push($JSON['timeline'], $ourArray);
+            array_push($JSON, $ourArray);
         }
 
-        return json_encode($JSON, JSON_PRETTY_PRINT);
+        return json_encode(array("activity" => $JSON), JSON_PRETTY_PRINT);
     } // timeline
-
-    //TODO: Podcast
 } // end json_data.class

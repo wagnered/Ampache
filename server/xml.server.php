@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +25,9 @@
  * as such it needs to verify the session id that is passed
  */
 define('NO_SESSION', '1');
-require_once '../lib/init.php';
+define('OUTDATED_DATABASE_OK', 1);
+$a_root = realpath(__DIR__ . "/../");
+require_once $a_root . '/lib/init.php';
 
 // If it's not a handshake then we can allow it to take up lots of time
 if (Core::get_request('action') != 'handshake') {
@@ -40,37 +42,30 @@ header("Content-Disposition: attachment; filename=information.xml");
 if (!AmpConfig::get('access_control')) {
     ob_end_clean();
     debug_event('xml.server', 'Error Attempted to use XML API with Access Control turned off', 3);
-    echo XML_Data::error('501', T_('Access Control not enabled'));
+    echo XML_Data::error('4700', T_('Access Denied'), Core::get_request('action'), 'system');
 
     return false;
 }
 
 /**
- * Verify the existance of the Session they passed in we do allow them to
+ * Verify the existence of the Session they passed in we do allow them to
  * login via this interface so we do have an exception for action=login
  */
 if (!Session::exists('api', Core::get_request('auth')) && Core::get_request('action') != 'handshake' && Core::get_request('action') != 'ping') {
     debug_event('Access Denied', 'Invalid Session attempt to API [' . Core::get_request('action') . ']', 3);
     ob_end_clean();
-    echo XML_Data::error('401', T_('Session Expired'));
+    echo XML_Data::error('4701', T_('Session Expired'), Core::get_request('action'), 'account');
 
     return false;
 }
 
 // If the session exists then let's try to pull some data from it to see if we're still allowed to do this
-$username = null;
-$apikey   = null;
+$username = ($_REQUEST['action'] == 'handshake') ? $_REQUEST['user'] : Session::username($_REQUEST['auth']);
 
-if ((Core::get_request('action') == 'handshake') && isset($_REQUEST['timestamp'])) {
-    $username = Core::get_request('user');
-} else {
-    $apikey = Core::get_request('auth');
-}
-
-if (!Access::check_network('init-api', $username, 5, $apikey)) {
+if (!Access::check_network('init-api', $username, 5)) {
     debug_event('Access Denied', 'Unauthorized access attempt to API [' . Core::get_server('REMOTE_ADDR') . ']', 3);
     ob_end_clean();
-    echo XML_Data::error('403', T_('Unauthorized access attempt to API - ACL Error'));
+    echo XML_Data::error('4742', T_('Unauthorized access attempt to API - ACL Error'), Core::get_request('action'), 'account');
 
     return false;
 }
@@ -87,28 +82,17 @@ if ((Core::get_request('action') != 'handshake') && (Core::get_request('action')
 // Make sure beautiful url is disabled as it is not supported by most Ampache clients
 AmpConfig::set('stream_beautiful_url', false, true);
 
-// Get the list of possible methods for the Ampache API
-$methods = get_class_methods('api');
+$method = $_GET['action'];
 
-// Define list of internal functions that should be skipped
-$internal_functions = array('set_filter');
-
-// Recurse through them and see if we're calling one of them
-foreach ($methods as $method) {
-    if (in_array($method, $internal_functions)) {
-        continue;
-    }
-
-    // If the method is the same as the action being called
-    // Then let's call this function!
-    if ($_GET['action'] == $method) {
-        $_GET['format'] = 'xml';
-        call_user_func(array('api', $method), $_GET);
-        // We only allow a single function to be called, and we assume it's cleaned up!
-        return false;
-    }
-} // end foreach methods in API
+// Retrieve the api method handler from the list of known methods
+$handler = Api::METHOD_LIST[$method] ?? null;
+if ($handler !== null) {
+    $_GET['api_format'] = 'xml';
+    call_user_func([$handler, $method], $_GET);
+    // We only allow a single function to be called, and we assume it's cleaned up!
+    return false;
+}
 
 // If we manage to get here, we still need to hand out an XML document
 ob_end_clean();
-echo XML_Data::error('405', T_('Invalid Request'));
+echo XML_Data::error('4705', T_('Invalid Request'), (string) $method, 'system');

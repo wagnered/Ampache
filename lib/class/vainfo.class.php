@@ -3,7 +3,7 @@ declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@ declare(strict_types=0);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +26,11 @@ declare(strict_types=0);
  * This class takes the information pulled from getID3 and returns it in a
  * Ampache-friendly way.
  *
+ */
+
+
+/**
+ * Class vainfo
  */
 class vainfo
 {
@@ -113,7 +118,7 @@ class vainfo
             if (AmpConfig::get('mb_detect_order')) {
                 $mb_order = AmpConfig::get('mb_detect_order');
             } elseif (function_exists('mb_detect_order')) {
-                $mb_order = implode(", ", mb_detect_order());
+                $mb_order = (mb_detect_order()) ? implode(", ", mb_detect_order()) : 'auto';
             } else {
                 $mb_order = "auto";
             }
@@ -214,7 +219,6 @@ class vainfo
      * get_info
      *
      * This function runs the various steps to gathering the metadata
-     * @throws Exception
      */
     public function get_info()
     {
@@ -222,84 +226,102 @@ class vainfo
         // time, just return their rotting carcass of a media file.
         if ($this->_broken) {
             $this->tags = $this->set_broken();
+        } else {
+            $enabled_sources = (array) $this->get_metadata_order();
 
-            return true;
-        }
-
-        $enabled_sources = (array) $this->get_metadata_order();
-
-        if (in_array('getID3', $enabled_sources) && $this->islocal) {
-            try {
-                $this->_raw = $this->_getID3->analyze(Core::conv_lc_file($this->filename));
-            } catch (Exception $error) {
-                debug_event('vainfo.class', 'getID2 Unable to catalog file: ' . $error->getMessage(), 1);
+            if (in_array('getID3', $enabled_sources) && $this->islocal) {
+                try {
+                    $this->_raw = $this->_getID3->analyze(Core::conv_lc_file($this->filename));
+                } catch (Exception $error) {
+                    debug_event('vainfo.class', 'getID2 Unable to catalog file: ' . $error->getMessage(), 1);
+                }
             }
+
+            /* Figure out what type of file we are dealing with */
+            $this->type = $this->_get_type() ?: '';
+
+            if (in_array('filename', $enabled_sources)) {
+                $this->tags['filename'] = $this->_parse_filename($this->filename);
+            }
+
+            if (in_array('getID3', $enabled_sources) && $this->islocal) {
+                $this->tags['getID3'] = $this->_get_tags();
+            }
+
+            $this->_get_plugin_tags();
         }
-
-        /* Figure out what type of file we are dealing with */
-        $this->type = $this->_get_type() ?: '';
-
-        if (in_array('filename', $enabled_sources)) {
-            $this->tags['filename'] = $this->_parse_filename($this->filename);
-        }
-
-        if (in_array('getID3', $enabled_sources) && $this->islocal) {
-            $this->tags['getID3'] = $this->_get_tags();
-        }
-
-        $this->_get_plugin_tags();
-
-        return true;
     } // get_info
 
     /**
      * write_id3
      * This function runs the various steps to gathering the metadata
      * @param $data
+     * @throws Exception
      */
-    public function write_id3($data)
+    public function write_id3($tag_data)
     {
-        // Get the Raw file information
-        $this->read_id3();
-        if (isset($this->_raw['tags']['id3v2'])) {
-            getid3_lib::IncludeDependency(GETID3_INCLUDEPATH . 'write.php', __FILE__, true);
-            $tagWriter           = new getid3_writetags();
-            $tagWriter->filename = $this->filename;
-            //'id3v2.4' doesn't saves the year;
-            $tagWriter->tagformats        = array('id3v1', 'id3v2.3');
-            $tagWriter->overwrite_tags    = true;
-            $tagWriter->remove_other_tags = true;
-            $tagWriter->tag_encoding      = 'UTF-8';
-            $TagData                      = $this->_raw['tags']['id3v2'];
+        $TaggingFormat = 'UTF-8';
+        $tagWriter     = new getid3_writetags();
+        $extension     = pathinfo($this->filename, PATHINFO_EXTENSION);
+        if ($extension == 'mp3') {
+            $format = 'id3v2.3';
+        } elseif ($extension == 'flac') {
+            $format = 'metaflac';
+        } elseif ($extension = 'oga') {
+            $format = 'vorbiscomment';
+        } else {
+            debug_event('Writing Tags:', "Files with '" . $extension . "' extensions are currently ignored.", 5);
 
-            // Foreach what we've got
-            foreach ($data as $key => $value) {
-                if ($key != 'APIC') {
-                    $TagData[$key][0] = $value;
-                }
+            return;
+        }
+
+        $tagWriter->filename          = $this->filename;
+        $tagWriter->tagformats        = array($format);
+        $tagWriter->overwrite_tags    = true;
+        $tagWriter->tag_encoding      = $TaggingFormat;
+        $tagWriter->remove_other_tags = true;
+        $tagWriter->tag_data          = $tag_data;
+        if ($tagWriter->WriteTags()) {
+            foreach ($tagWriter->warnings as $message) {
+                debug_event('vainfo.class', 'Warning Writing Image: ' . $message, 5);
             }
-
-            if (isset($data['APIC'])) {
-                $TagData['attached_picture'][0]['data']          = $data['APIC']['data'];
-                $TagData['attached_picture'][0]['picturetypeid'] = '3';
-                $TagData['attached_picture'][0]['description']   = 'Cover';
-                $TagData['attached_picture'][0]['mime']          = $data['APIC']['mime'];
-            }
-
-            $tagWriter->tag_data = $TagData;
-
-            if ($tagWriter->WriteTags()) {
-                if (!empty($tagWriter->warnings)) {
-                    debug_event('vainfo.class', 'FWarnings ' . implode("\n", $tagWriter->warnings), 5);
-                }
-            } else {
-                debug_event('vainfo.class', 'Failed to write tags! ' . implode("\n", $tagWriter->errors), 3);
+        }
+        if (!empty($tagWriter->errors)) {
+            foreach ($tagWriter->errors as $message) {
+                debug_event('vainfo.class', 'Error Writing Image: ' . $message, 1);
             }
         }
     } // write_id3
 
+
+    /**
+     * prepare_id3_frames
+     * Prepares id3 frames for writing tag to file
+     * @param array $frames
+     * @return array
+     */
+    public function prepare_id3_frames($frames)
+    {
+        $ndata = array();
+        foreach ($frames as $key => $text) {
+            switch ($key) {
+                case 'text':
+                   foreach ($text as $tkey => $data) {
+                       $ndata['text'][] = array('data' => $data, 'description' => $tkey, 'encodingid' => 0);
+                   }
+                   break;
+                default:
+                   $ndata[$key][] = $key[0];
+                    break;
+            }
+        }
+
+        return $ndata;
+    } // prepare_id3_frames
+
     /**
      * read_id3
+
      * This function runs the various steps to gathering the metadata
      * @return array
      */
@@ -378,14 +400,14 @@ class vainfo
             $tags = $results[$key];
 
             $info['file']    = $info['file'] ?: $tags['file'];
-            $info['bitrate'] = $info['bitrate'] ?: (int) ($tags['bitrate']);
-            $info['rate']    = $info['rate'] ?: (int) ($tags['rate']);
+            $info['bitrate'] = $info['bitrate'] ?: (int) $tags['bitrate'];
+            $info['rate']    = $info['rate'] ?: (int) $tags['rate'];
             $info['mode']    = $info['mode'] ?: $tags['mode'];
             // size will be added later, because of conflicts between real file size and getID3 reported filesize
             $info['mime']     = $info['mime'] ?: $tags['mime'];
             $info['encoding'] = $info['encoding'] ?: $tags['encoding'];
             $info['rating']   = $info['rating'] ?: $tags['rating'];
-            $info['time']     = $info['time'] ?: (int) ($tags['time']);
+            $info['time']     = $info['time'] ?: (int) $tags['time'];
             $info['channels'] = $info['channels'] ?: $tags['channels'];
 
             // This because video title are almost always bad...
@@ -393,10 +415,10 @@ class vainfo
             $info['title']         = $info['title'] ?: stripslashes(trim((string) $tags['title']));
 
             // Not even sure if these can be negative, but better safe than llama.
-            $info['year'] = Catalog::normalize_year($info['year'] ?: (int) ($tags['year']));
-            $info['disk'] = abs($info['disk'] ?: (int) ($tags['disk']));
+            $info['year'] = Catalog::normalize_year($info['year'] ?: (int) $tags['year']);
+            $info['disk'] = abs($info['disk'] ?: (int) $tags['disk']);
 
-            $info['totaldisks'] = $info['totaldisks'] ?: (int) ($tags['totaldisks']);
+            $info['totaldisks'] = $info['totaldisks'] ?: (int) $tags['totaldisks'];
 
             $info['artist']         = $info['artist'] ?: trim((string) $tags['artist']);
             $info['albumartist']    = $info['albumartist'] ?: trim((string) $tags['albumartist']);
@@ -432,13 +454,13 @@ class vainfo
             $info['replaygain_album_gain'] = $info['replaygain_album_gain'] ?: floatval($tags['replaygain_album_gain']);
             $info['replaygain_album_peak'] = $info['replaygain_album_peak'] ?: floatval($tags['replaygain_album_peak']);
 
-            $info['track']         = $info['track'] ?: (int) ($tags['track']);
-            $info['resolution_x']  = $info['resolution_x'] ?: (int) ($tags['resolution_x']);
-            $info['resolution_y']  = $info['resolution_y'] ?: (int) ($tags['resolution_y']);
-            $info['display_x']     = $info['display_x'] ?: (int) ($tags['display_x']);
-            $info['display_y']     = $info['display_y'] ?: (int) ($tags['display_y']);
-            $info['frame_rate']    = $info['frame_rate'] ?: floatval($tags['frame_rate']);
-            $info['video_bitrate'] = $info['video_bitrate'] ?: (int) ($tags['video_bitrate']);
+            $info['track']         = $info['track'] ?: (int) $tags['track'];
+            $info['resolution_x']  = $info['resolution_x'] ?: (int) $tags['resolution_x'];
+            $info['resolution_y']  = $info['resolution_y'] ?: (int) $tags['resolution_y'];
+            $info['display_x']     = $info['display_x'] ?: (int) $tags['display_x'];
+            $info['display_y']     = $info['display_y'] ?: (int) $tags['display_y'];
+            $info['frame_rate']    = $info['frame_rate'] ?: (float) $tags['frame_rate'];
+            $info['video_bitrate'] = $info['video_bitrate'] ?: (int) Catalog::check_int($tags['video_bitrate'], 4294967294, 0);
             $info['audio_codec']   = $info['audio_codec'] ?: trim((string) $tags['audio_codec']);
             $info['video_codec']   = $info['video_codec'] ?: trim((string) $tags['video_codec']);
             $info['description']   = $info['description'] ?: trim((string) $tags['description']);
@@ -534,7 +556,6 @@ class vainfo
         return false;
     }
 
-
     /**
      * _get_tags
      *
@@ -557,47 +578,47 @@ class vainfo
                     case 'matroska':
                         debug_event('vainfo.class', 'Cleaning ' . $key, 5);
                         $parsed = $this->_cleanup_generic($tag_array);
-                    break;
+                        break;
                     case 'vorbiscomment':
                         debug_event('vainfo.class', 'Cleaning vorbis', 5);
                         $parsed = $this->_cleanup_vorbiscomment($tag_array);
-                    break;
+                        break;
                     case 'id3v1':
                         debug_event('vainfo.class', 'Cleaning id3v1', 5);
                         $parsed = $this->_cleanup_id3v1($tag_array);
-                    break;
+                        break;
                     case 'id3v2':
                         debug_event('vainfo.class', 'Cleaning id3v2', 5);
                         $parsed = $this->_cleanup_id3v2($tag_array);
-                    break;
+                        break;
                     case 'quicktime':
                         debug_event('vainfo.class', 'Cleaning quicktime', 5);
                         $parsed = $this->_cleanup_quicktime($tag_array);
-                    break;
+                        break;
                     case 'riff':
                         debug_event('vainfo.class', 'Cleaning riff', 5);
                         $parsed = $this->_cleanup_riff($tag_array);
-                    break;
+                        break;
                     case 'mpg':
                     case 'mpeg':
                         $key = 'mpeg';
                         debug_event('vainfo.class', 'Cleaning MPEG', 5);
                         $parsed = $this->_cleanup_generic($tag_array);
-                    break;
+                        break;
                     case 'asf':
                     case 'wmv':
                         $key = 'asf';
                         debug_event('vainfo.class', 'Cleaning WMV/WMA/ASF', 5);
                         $parsed = $this->_cleanup_generic($tag_array);
-                    break;
+                        break;
                     case 'lyrics3':
                         debug_event('vainfo.class', 'Cleaning lyrics3', 5);
                         $parsed = $this->_cleanup_lyrics($tag_array);
-                    break;
+                        break;
                     default:
                         debug_event('vainfo.class', 'Cleaning unrecognised tag type ' . $key . ' for file ' . $this->filename, 5);
                         $parsed = $this->_cleanup_generic($tag_array);
-                    break;
+                        break;
                 }
 
                 $results[$key] = $parsed;
@@ -642,7 +663,7 @@ class vainfo
     private function _get_plugin_tags()
     {
         $tag_order = $this->get_metadata_order();
-        if (!is_array($tag_order)) {
+        if (!empty($tag_order)) {
             $tag_order = array($tag_order);
         }
 
@@ -683,8 +704,8 @@ class vainfo
             $parsed['mode'] = 'cbr';
         }
         $parsed['bitrate']       = $tags['audio']['bitrate'];
-        $parsed['channels']      = (int) ($tags['audio']['channels']);
-        $parsed['rate']          = (int) ($tags['audio']['sample_rate']);
+        $parsed['channels']      = (int) $tags['audio']['channels'];
+        $parsed['rate']          = (int) $tags['audio']['sample_rate'];
         $parsed['size']          = $this->_forcedSize ?: $tags['filesize'];
         $parsed['encoding']      = $tags['encoding'];
         $parsed['mime']          = $tags['mime_type'];
@@ -717,7 +738,7 @@ class vainfo
     }
 
     /**
-     * @param $string
+     * @param string $string
      * @return string
      */
     private function trimAscii($string)
@@ -790,7 +811,8 @@ class vainfo
                     $parsed['mb_trackid'] = $data[0];
                     break;
                 case 'musicbrainz_albumtype':
-                    $parsed['release_type'] = $data[0];
+                    $parsed['release_type'] = (is_array($data[0])) ? implode(", ", $data[0]) :
+                        implode(', ', array_diff(preg_split("/[^a-zA-Z0-9*]/", $data[0]), array('')));
                     break;
                 default:
                     $parsed[$tagname] = $data[0];
@@ -832,10 +854,10 @@ class vainfo
      */
     private function _cleanup_vorbiscomment($tags)
     {
-        $parsed = array();
+        $parsed      = array();
 
         foreach ($tags as $tag => $data) {
-            //debug_event('vainfo.class', 'Vorbis tag: ' . $tag . ' value: ' . $data[0], 5);
+            // debug_event('vainfo.class', 'Vorbis tag: ' . $tag . ' value: ' . $data[0], 5);
             switch (strtolower($tag)) {
                 case 'genre':
                     // Pass the array through
@@ -843,15 +865,15 @@ class vainfo
                     break;
                 case 'tracknumber':
                     $parsed['track'] = $data[0];
-                break;
+                    break;
                 case 'discnumber':
                     $elements             = explode('/', $data[0]);
                     $parsed['disk']       = $elements[0];
                     $parsed['totaldisks'] = $elements[1];
-                break;
+                    break;
                 case 'date':
                     $parsed['year'] = $data[0];
-                break;
+                    break;
                 case 'musicbrainz_artistid':
                     $parsed['mb_artistid'] = $data[0];
                     break;
@@ -868,7 +890,8 @@ class vainfo
                     $parsed['mb_trackid'] = $data[0];
                     break;
                 case 'musicbrainz_albumtype':
-                    $parsed['release_type'] = $data[0];
+                    $parsed['release_type'] = (is_array($data[0])) ? implode(", ", $data[0]) :
+                        implode(', ', array_diff(preg_split("/[^a-zA-Z0-9*]/", $data[0]), array('')));
                     break;
                 case 'unsyncedlyrics':
                 case 'unsynced lyrics':
@@ -884,12 +907,19 @@ class vainfo
                 case 'catalognumber':
                     $parsed['catalog_number'] = $data[0];
                     break;
+                case 'label':
+                    $parsed['publisher'] = $data[0];
+                    break;
                 case 'rating':
-                    $parsed['rating'][-1] = floor($data[0] * 5 / 100);
+                    $rating_user = -1;
+                    if (AmpConfig::get('rating_file_tag_user')) {
+                        $rating_user = (int) AmpConfig::get('rating_file_tag_user');
+                    }
+                    $parsed['rating'][$rating_user] = floor($data[0] * 5 / 100);
                     break;
                 default:
                     $parsed[$tag] = $data[0];
-                break;
+                    break;
             }
         }
 
@@ -929,8 +959,8 @@ class vainfo
         $parsed = array();
 
         foreach ($tags as $tag => $data) {
-            //debug_event('vainfo.class', 'id3v2 tag: ' . strtolower($tag) . ' value: ' . $data[0], 5);
-            switch ($tag) {
+            // debug_event('vainfo.class', 'id3v2 tag: ' . strtolower($tag) . ' value: ' . $data[0], 5);
+            switch (strtolower($tag)) {
                 case 'genre':
                     $parsed['genre'] = $this->parseGenres($data);
                     break;
@@ -938,14 +968,14 @@ class vainfo
                     $elements             = explode('/', $data[0]);
                     $parsed['disk']       = $elements[0];
                     $parsed['totaldisks'] = $elements[1];
-                break;
+                    break;
                 case 'track_number':
                     $parsed['track'] = $data[0];
-                break;
+                    break;
                 case 'comment':
                     // First array key can be xFF\xFE in case of UTF-8, better to get it this way
                     $parsed['comment'] = reset($data);
-                break;
+                    break;
                 case 'composer':
                     $BOM = chr(0xff) . chr(0xfe);
                     if (strlen($data[0]) == 2 && $data[0] == $BOM) {
@@ -969,9 +999,12 @@ class vainfo
                 case 'catalognumber':
                     $parsed['catalog_number'] = $data[0];
                     break;
+                case 'label':
+                    $parsed['publisher'] = $data[0];
+                    break;
                 default:
                     $parsed[$tag] = $data[0];
-                break;
+                    break;
             }
         }
 
@@ -985,51 +1018,61 @@ class vainfo
                     $parsed['mb_trackid'] = $ufid['data'];
                 }
             }
+        }
 
-            if (!empty($id3v2['TXXX'])) {
-                // Find the MBIDs for the album and artist
-                // Use trimAscii to remove noise (see #225 and #438 issues). Is this a GetID3 bug?
-                // not a bug those strings are UTF-16 encoded
-                // getID3 has copies of text properly converted to utf-8 encoding in comments/text
-                foreach ($id3v2['TXXX'] as $txxx) {
-                    switch (strtolower($this->trimAscii($txxx['description']))) {
-                        case 'musicbrainz album id':
-                            $parsed['mb_albumid'] = $id3v2['comments']['text'][$txxx['description']];
+        if (!empty($id3v2['TXXX'])) {
+            // Find the MBIDs for the album and artist
+            // Use trimAscii to remove noise (see #225 and #438 issues). Is this a GetID3 bug?
+            // not a bug those strings are UTF-16 encoded
+            // getID3 has copies of text properly converted to utf-8 encoding in comments/text
+            $enable_custom_metadata = AmpConfig::get('enable_custom_metadata');
+            foreach ($id3v2['TXXX'] as $txxx) {
+                switch (strtolower($this->trimAscii($txxx['description']))) {
+                    case 'musicbrainz album id':
+                        $parsed['mb_albumid'] = $id3v2['comments']['text'][$txxx['description']];
                         break;
-                        case 'musicbrainz release group id':
-                            $parsed['mb_albumid_group'] = $id3v2['comments']['text'][$txxx['description']];
+                    case 'musicbrainz release group id':
+                        $parsed['mb_albumid_group'] = $id3v2['comments']['text'][$txxx['description']];
                         break;
-                        case 'musicbrainz artist id':
-                            $parsed['mb_artistid'] = $id3v2['comments']['text'][$txxx['description']];
+                    case 'musicbrainz artist id':
+                        $parsed['mb_artistid'] = $id3v2['comments']['text'][$txxx['description']];
                         break;
-                        case 'musicbrainz album artist id':
-                            $parsed['mb_albumartistid'] = $id3v2['comments']['text'][$txxx['description']];
+                    case 'musicbrainz album artist id':
+                        $parsed['mb_albumartistid'] = $id3v2['comments']['text'][$txxx['description']];
                         break;
-                        case 'musicbrainz album type':
-                            $parsed['release_type'] = $id3v2['comments']['text'][$txxx['description']];
+                    case 'musicbrainz album type':
+                        $parsed['release_type'] = (is_array($id3v2['comments']['text'][$txxx['description']])) ? implode(", ", $id3v2['comments']['text'][$txxx['description']]) :
+                            implode(', ', array_diff(preg_split("/[^a-zA-Z0-9*]/", $id3v2['comments']['text'][$txxx['description']]), array('')));
                         break;
-                        case 'replaygain_track_gain':
-                            $parsed['replaygain_track_gain'] = floatval($txxx['data']);
+                    case 'replaygain_track_gain':
+                        $parsed['replaygain_track_gain'] = floatval($txxx['data']);
                         break;
-                        case 'replaygain_track_peak':
-                            $parsed['replaygain_track_peak'] = floatval($txxx['data']);
+                    case 'replaygain_track_peak':
+                        $parsed['replaygain_track_peak'] = floatval($txxx['data']);
                         break;
-                        case 'replaygain_album_gain':
-                            $parsed['replaygain_album_gain'] = floatval($txxx['data']);
+                    case 'replaygain_album_gain':
+                        $parsed['replaygain_album_gain'] = floatval($txxx['data']);
                         break;
-                        case 'replaygain_album_peak':
-                            $parsed['replaygain_album_peak'] = floatval($txxx['data']);
+                    case 'replaygain_album_peak':
+                        $parsed['replaygain_album_peak'] = floatval($txxx['data']);
                         break;
-                        case 'original_year':
-                            $parsed['original_year'] = $id3v2['comments']['text'][$txxx['description']];
+                    case 'original_year':
+                        $parsed['original_year'] = $id3v2['comments']['text'][$txxx['description']];
                         break;
-                        case 'barcode':
-                            $parsed['barcode'] = $id3v2['comments']['text'][$txxx['description']];
+                    case 'barcode':
+                        $parsed['barcode'] = $id3v2['comments']['text'][$txxx['description']];
                         break;
-                        case 'catalognumber':
-                            $parsed['catalog_number'] = $id3v2['comments']['text'][$txxx['description']];
+                    case 'catalognumber':
+                        $parsed['catalog_number'] = $id3v2['comments']['text'][$txxx['description']];
                         break;
-                    }
+                    case 'label':
+                        $parsed['publisher'] = $id3v2['comments']['text'][$txxx['description']];
+                        break;
+                    default:
+                        if ($enable_custom_metadata && !in_array($txxx['description'], $parsed)) {
+                            $parsed[$txxx['description']] = $id3v2['comments']['text'][$txxx['description']];
+                        }
+                        break;
                 }
             }
         }
@@ -1044,9 +1087,13 @@ class vainfo
                         $parsed['rating'][$user->id] = $popm['rating'] / 255 * 5;
                     }
                 }
-                // Rating made by an unknow user, adding it to super user (id=-1)
+                // Rating made by an unknown user, adding it to super user (id=-1)
                 else {
-                    $parsed['rating'][-1] = $popm['rating'] / 255 * 5;
+                    $rating_user = -1;
+                    if (AmpConfig::get('rating_file_tag_user')) {
+                        $rating_user = (int) AmpConfig::get('rating_file_tag_user');
+                    }
+                    $parsed['rating'][$rating_user] = $popm['rating'] / 255 * 5;
                 }
             }
         }
@@ -1087,41 +1134,54 @@ class vainfo
         $parsed = array();
 
         foreach ($tags as $tag => $data) {
-            switch ($tag) {
+            switch (strtolower($tag)) {
                 case 'creation_date':
                     $parsed['release_date'] = strtotime(str_replace(" ", "", $data[0]));
                     if (strlen($data['0']) > 4) {
                         $data[0] = date('Y', $parsed['release_date']);
                     }
                     $parsed['year'] = $data[0];
-                break;
-                case 'MusicBrainz Track Id':
+                    break;
+                case 'musicbrainz track id':
                     $parsed['mb_trackid'] = $data[0];
-                break;
-                case 'MusicBrainz Album Id':
+                    break;
+                case 'musicbrainz album id':
                     $parsed['mb_albumid'] = $data[0];
-                break;
-                case 'MusicBrainz Album Artist Id':
+                    break;
+                case 'musicbrainz album artist id':
                     $parsed['mb_albumartistid'] = $data[0];
-                break;
-                case 'MusicBrainz Release Group Id':
+                    break;
+                case 'musicbrainz release group id':
                     $parsed['mb_albumid_group'] = $data[0];
-                break;
-                case 'MusicBrainz Artist Id':
+                    break;
+                case 'musicbrainz artist id':
                     $parsed['mb_artistid'] = $data[0];
-                break;
-                case 'MusicBrainz Album Type':
-                $parsed['release_type'] = $data[0];
-                break;
+                    break;
+                case 'musicbrainz album type':
+                $parsed['release_type'] = (is_array($data[0])) ? implode(", ", $data[0]) :
+                    implode(', ', array_diff(preg_split("/[^a-zA-Z0-9*]/", $data[0]), array('')));
+                    break;
                 case 'track_number':
                     $parsed['track'] = $data[0];
-                break;
+                    break;
                 case 'disc_number':
                     $parsed['disk'] = $data[0];
-                break;
+                    break;
                 case 'album_artist':
                     $parsed['albumartist'] = $data[0];
-                break;
+                    break;
+                case 'originalyear':
+                    $parsed['original_year'] = $data[0];
+                    break;
+                case 'barcode':
+                    $parsed['barcode'] = $data[0];
+                    break;
+                case 'catalognumber':
+                    $parsed['catalog_number'] = $data[0];
+                    break;
+                case 'label':
+                    $parsed['publisher'] = $data[0];
+                    break;
                 case 'tv_episode':
                     $parsed['tvshow_episode'] = $data[0];
                     break;
@@ -1133,7 +1193,7 @@ class vainfo
                     break;
                 default:
                     $parsed[$tag] = $data[0];
-                break;
+                    break;
             }
         }
 
@@ -1168,7 +1228,7 @@ class vainfo
             $tvyear  = array();
             $temp    = array();
             preg_match("~(?<=\(\[\<\{)[1|2][0-9]{3}|[1|2][0-9]{3}~", $filepath, $tvyear);
-            $results['year'] = !empty($tvyear) ? (int) ($tvyear[0]) : null;
+            $results['year'] = (!empty($tvyear)) ? (int) $tvyear[0] : null;
 
             if (preg_match("~[Ss](\d+)[Ee](\d+)~", $file, $seasonEpisode)) {
                 $temp = preg_split("~(((\.|_|\s)[Ss]\d+(\.|_)*[Ee]\d+))~", $file, 2);
@@ -1219,12 +1279,12 @@ class vainfo
                             if (isset($matches[5])) {
                                 $results['tvshow_episode'] = $matches[5];
                             } else {
-                                //match pattern like 10.episode name.mp4
+                                // match pattern like 10.episode name.mp4
                                 if (preg_match("~^(\d\d)[\_\-\.\s]?(.*)~", $file, $matches)) {
                                     $results['tvshow_episode'] = $matches[1];
                                     $results['original_name']  = $this->formatVideoName($matches[2]);
                                 } else {
-                                    //Fallback to match any 3-digit Season/Episode that fails the standard pattern above.
+                                    // Fallback to match any 3-digit Season/Episode that fails the standard pattern above.
                                     preg_match("~(\d)(\d\d)[\_\-\.\s]?~", $file, $matches);
                                     $results['tvshow_episode'] = $matches[2];
                                 }
@@ -1280,7 +1340,8 @@ class vainfo
         preg_match_all('/\%\w/', $pattern, $elements);
 
         // Mangle the pattern by turning the codes into regex captures
-        $pattern = preg_replace('/\%[Ty]/', '([0-9]+?)', $pattern);
+        $pattern = preg_replace('/\%[d]/', '([0-9]?)', $pattern);
+        $pattern = preg_replace('/\%[TyY]/', '([0-9]+?)', $pattern);
         $pattern = preg_replace('/\%\w/', '(.+?)', $pattern);
         $pattern = str_replace('/', '\/', $pattern);
         $pattern = str_replace(' ', '\s', $pattern);
@@ -1288,6 +1349,7 @@ class vainfo
 
         // Pull out our actual matches
         preg_match($pattern, $filepath, $matches);
+        debug_event('vainfo.class', 'Checking ' . $pattern . ' _ ' . $matches . ' on ' . $filepath, 5);
         if ($matches != null) {
             // The first element is the full match text
             $matched = array_shift($matches);
@@ -1309,7 +1371,7 @@ class vainfo
 
     /**
      * removeCommonAbbreviations
-     * @param $name
+     * @param string $name
      * @return string
      */
     private function removeCommonAbbreviations($name)
@@ -1319,8 +1381,8 @@ class vainfo
         $commonabbr[] = '[1|2][0-9]{3}';   //Remove release year
         $abbr_count   = count($commonabbr);
 
-        //scan for brackets, braces, etc and ignore case.
-        for ($count=0; $count < $abbr_count;$count++) {
+        // scan for brackets, braces, etc and ignore case.
+        for ($count=0; $count < $abbr_count; $count++) {
             $commonabbr[$count] = "~\[*|\(*|\<*|\{*\b(?i)" . trim((string) $commonabbr[$count]) . "\b\]*|\)*|\>*|\}*~";
         }
 
@@ -1329,7 +1391,7 @@ class vainfo
 
     /**
      * formatVideoName
-     * @param $name
+     * @param string $name
      * @return string
      */
     private function formatVideoName($name)
@@ -1373,6 +1435,8 @@ class vainfo
      */
     private function parseGenres($data)
     {
+        // get rid of that annoying genre!
+        $data = str_replace('Folk, World, & Country', 'Folk World & Country', $data);
         // read additional id3v2 delimiters from config
         $delimiters = AmpConfig::get('additional_genre_delimiters');
         if (isset($data) && is_array($data) && count($data) === 1 && isset($delimiters)) {

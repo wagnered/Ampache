@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,12 +16,14 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
 $prefix = dirname(__FILE__);
-require_once $prefix . '/lib/init-tiny.php';
+
+$a_root = realpath(__DIR__);
+require_once $a_root . '/lib/init-tiny.php';
 
 switch ($_REQUEST['action']) {
     case 'config':
@@ -38,11 +40,12 @@ switch ($_REQUEST['action']) {
         $results = array();
         if (!file_exists($configfile)) {
             $link = $path . '/install.php';
+            header("Location: " . $link);
         } else {
             // Make sure the config file is set up and parsable
             $results = @parse_ini_file($configfile);
 
-            if (!count($results)) {
+            if (empty($results)) {
                 $link = $path . '/test.php?action=config';
             }
         }
@@ -65,5 +68,5 @@ switch ($_REQUEST['action']) {
             // Load template
             require_once $prefix . '/templates/show_test.inc.php';
         }
-    break;
+        break;
 } // end switch on action

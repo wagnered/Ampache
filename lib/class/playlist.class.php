@@ -3,7 +3,7 @@ declare(strict_types=0);
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,7 +17,7 @@ declare(strict_types=0);
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,6 +32,7 @@ class Playlist extends playlist_object
     public $genre;
     public $date;
     public $last_update;
+    public $last_duration;
 
     public $link;
     public $f_link;
@@ -45,7 +46,7 @@ class Playlist extends playlist_object
      * Constructor
      * This takes a playlist_id as an optional argument and gathers the information
      * if not playlist_id is passed returns false (or if it isn't found
-     * @param $object_id
+     * @param integer $object_id
      */
     public function __construct($object_id)
     {
@@ -53,6 +54,9 @@ class Playlist extends playlist_object
 
         foreach ($info as $key => $value) {
             $this->$key = $value;
+        }
+        if ($this->last_duration == 0) {
+            $this->set_last($this->get_total_duration(), 'last_duration');
         }
     } // Playlist
 
@@ -76,7 +80,7 @@ class Playlist extends playlist_object
      */
     public static function build_cache($ids)
     {
-        if (count($ids)) {
+        if (!empty($ids)) {
             $idlist     = '(' . implode(',', $ids) . ')';
             $sql        = "SELECT * FROM `playlist` WHERE `id` IN $idlist";
             $db_results = Dba::read($sql);
@@ -94,7 +98,7 @@ class Playlist extends playlist_object
      * @param integer $user_id
      * @param string $playlist_name
      * @param boolean $like
-     * @return array
+     * @return integer[]
      */
     public static function get_playlists($incl_public = true, $user_id = -1, $playlist_name = '', $like = true)
     {
@@ -133,7 +137,7 @@ class Playlist extends playlist_object
         $db_results = Dba::read($sql, $params);
         $results    = array();
         while ($row = Dba::fetch_assoc($db_results)) {
-            $results[] = $row['id'];
+            $results[] = (int) $row['id'];
         }
 
         return $results;
@@ -203,9 +207,8 @@ class Playlist extends playlist_object
         $this->link   = AmpConfig::get('web_path') . '/playlist.php?action=show_playlist&playlist_id=' . $this->id;
         $this->f_link = '<a href="' . $this->link . '">' . $this->f_name . '</a>';
 
-        $time_format         = AmpConfig::get('custom_datetime') ? (string) AmpConfig::get('custom_datetime') : 'm/d/Y H:i';
-        $this->f_date        = $this->date ? get_datetime($time_format, (int) $this->date) : T_('Unknown');
-        $this->f_last_update = $this->last_update ? get_datetime($time_format, (int) $this->last_update) : T_('Unknown');
+        $this->f_date        = $this->date ? get_datetime((int) $this->date) : T_('Unknown');
+        $this->f_last_update = $this->last_update ? get_datetime((int) $this->last_update) : T_('Unknown');
     } // format
 
     /**
@@ -324,9 +327,11 @@ class Playlist extends playlist_object
     */
     public function get_total_duration()
     {
-        $songs  = self::get_songs();
+        $songs  = $this->get_songs();
         $idlist = '(' . implode(',', $songs) . ')';
-
+        if ($idlist == '()') {
+            return null;
+        }
         $sql        = "SELECT SUM(`time`) FROM `song` WHERE `id` IN $idlist";
         $db_results = Dba::read($sql);
 
@@ -407,6 +412,7 @@ class Playlist extends playlist_object
         if ($this->_update_item('last_update', $last_update, 50)) {
             $this->last_update = $last_update;
         }
+        $this->set_last($this->get_total_duration(), 'last_duration');
     } // update_last_update
 
     /**
@@ -415,7 +421,7 @@ class Playlist extends playlist_object
      * @param string $field
      * @param $value
      * @param integer $level
-     * @return bool|PDOStatement
+     * @return PDOStatement|boolean
      */
     private function _update_item($field, $value, $level)
     {
@@ -511,10 +517,9 @@ class Playlist extends playlist_object
      * @param string $name
      * @param string $type
      * @param integer $user_id
-     * @param integer $date
      * @return string|null
      */
-    public static function create($name, $type, $user_id = null, $date = null)
+    public static function create($name, $type, $user_id = null)
     {
         if ($user_id === null) {
             $user_id = Core::get_global('user')->id;
@@ -529,15 +534,13 @@ class Playlist extends playlist_object
         while ($row = Dba::fetch_assoc($db_results)) {
             $results[] = $row['id'];
         }
-        //return the duplicate ID
+        // return the duplicate ID
         if (!empty($results)) {
             return $results[0];
         }
-        if (!is_int($date)) {
-            $date = time();
-        }
 
-        $sql = "INSERT INTO `playlist` (`name`, `user`, `type`, `date`, `last_update`) VALUES (?, ?, ?, ?, ?)";
+        $date = time();
+        $sql  = "INSERT INTO `playlist` (`name`, `user`, `type`, `date`, `last_update`) VALUES (?, ?, ?, ?, ?)";
         Dba::write($sql, array($name, $user_id, $type, $date, $date));
 
         return Dba::insert_id();
@@ -551,6 +554,37 @@ class Playlist extends playlist_object
     {
         $this->items = $this->get_items();
     } // set_items
+
+    /**
+     * set_last
+     *
+     * @param integer $count
+     * @param string $column
+     */
+    private function set_last($count, $column)
+    {
+        if (in_array($column, array('last_count', 'last_duration')) && $count >= 0) {
+            $sql = "UPDATE `playlist` SET `" . Dba::escape($column) . "` = " . $count . " WHERE `id` = " . Dba::escape($this->id);
+            Dba::write($sql);
+        }
+    }
+
+    /**
+     * delete_all
+     *
+     * this deletes all tracks from a playlist, you specify the playlist.id here
+     * @return boolean
+     */
+    public function delete_all()
+    {
+        $sql = "DELETE FROM `playlist_data` WHERE `playlist_data`.`playlist` = ?";
+        Dba::write($sql, array($this->id));
+        debug_event('playlist.class', 'Delete all tracks from: ' . $this->id, 5);
+
+        $this->update_last_update();
+
+        return true;
+    } // delete_all
 
     /**
      * delete_song
@@ -571,8 +605,8 @@ class Playlist extends playlist_object
 
     /**
      * delete_track
-     * @param integer $item_id
      * this deletes a single track, you specify the playlist_data.id here
+     * @param integer $item_id
      * @return boolean
      */
     public function delete_track($item_id)
@@ -588,8 +622,8 @@ class Playlist extends playlist_object
 
     /**
      * delete_track_number
-     * @param integer $track
      * this deletes a single track by it's track #, you specify the playlist_data.track here
+     * @param integer $track
      * @return boolean
      */
     public function delete_track_number($track)
@@ -597,6 +631,25 @@ class Playlist extends playlist_object
         $sql = "DELETE FROM `playlist_data` WHERE `playlist_data`.`playlist` = ? AND `playlist_data`.`track` = ? LIMIT 1";
         Dba::write($sql, array($this->id, $track));
         debug_event('playlist.class', 'Delete track: ' . $track . ' from ' . $this->id, 5);
+
+        $this->update_last_update();
+
+        return true;
+    } // delete_track_number
+
+    /**
+     * set_by_track_number
+     * this deletes a single track by it's track #, you specify the playlist_data.track here
+     * @param integer $object_id
+     * @param integer $track
+     * @return boolean
+     */
+    public function set_by_track_number($object_id, $track)
+    {
+        $sql = "UPDATE `playlist_data` SET `object_id` = ? " .
+               "WHERE `playlist_data`.`playlist` = ? AND `playlist_data`.`track` = ?";
+        Dba::write($sql, array($object_id, $this->id, $track));
+        debug_event('playlist.class', 'Set track ' . $track . ' to ' . $object_id . ' for playlist: ' . $this->id, 5);
 
         $this->update_last_update();
 
@@ -655,17 +708,19 @@ class Playlist extends playlist_object
     public function sort_tracks()
     {
         /* First get all of the songs in order of their tracks */
-        $sql = "SELECT A.`id`
-                FROM `playlist_data` AS A
-           LEFT JOIN `song` AS B ON A.object_id = B.id
-           LEFT JOIN `artist` AS C ON B.artist = C.id
-           LEFT JOIN `album` AS D ON B.album = D.id
-               WHERE A.`playlist` = ?
-            ORDER BY C.`name` ASC,
-                     B.`title` ASC,
-                     D.`year` ASC,
-                     D.`name` ASC,
-                     B.`track` ASC";
+        $sql = "SELECT LIST.`id`
+                FROM `playlist_data` AS LIST
+           LEFT JOIN `song` AS SONG ON LIST.object_id = SONG.id
+           LEFT JOIN `album` AS ALBUM ON SONG.album = ALBUM.id
+           LEFT JOIN `artist` AS ARTIST ON ALBUM.album_artist = ARTIST.id
+               WHERE LIST.`playlist` = ?
+            ORDER BY ARTIST.`name` ASC,
+                     ALBUM.`name` ASC,
+                     ALBUM.`year` ASC,
+                     ALBUM.`disk` ASC,
+                     SONG.`track` ASC,
+                     SONG.`title` ASC,
+                     SONG.`track` ASC";
         $db_results = Dba::query($sql, array($this->id));
 
         $count   = 1;
@@ -678,12 +733,19 @@ class Playlist extends playlist_object
             $results[]              = $new_data;
             $count++;
         } // end while results
+        if (!empty($results)) {
+            $sql = "INSERT INTO `playlist_data` (`id`, `track`) VALUES ";
+            foreach ($results as $data) {
+                $sql .= "(" . Dba::escape($data['id']) . ", " . Dba::escape($data['track']) . "), ";
+            } // foreach re-ordered results
 
-        foreach ($results as $data) {
-            $sql = "UPDATE `playlist_data` SET `track` = ? WHERE `id` = ?";
-            Dba::write($sql, array($data['track'], $data['id']));
-        } // foreach re-ordered results
+            //replace the last comma
+            $sql = substr_replace($sql ,"", -2);
+            $sql .= "ON DUPLICATE KEY UPDATE `track`=VALUES(`track`)";
 
+            // do this in one go
+            Dba::write($sql);
+        }
         $this->update_last_update();
 
         return true;

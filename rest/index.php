@@ -2,7 +2,7 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPL-3.0-or-later)
  * Copyright 2001 - 2020 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,12 +16,14 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
 
 define('NO_SESSION', '1');
-require_once '../lib/init.php';
+define('OUTDATED_DATABASE_OK', 1);
+$a_root = realpath(__DIR__ . "/../");
+require_once $a_root . '/lib/init.php';
 
 if (!AmpConfig::get('subsonic_backend')) {
     echo T_("Disabled");
@@ -96,9 +98,9 @@ if (!Access::check_network('init-api', $user, 5)) {
     return false;
 }
 
-$GLOBALS['user'] =  User::get_from_username($user);
+$GLOBALS['user'] = User::get_from_username($user);
 // Check server version
-if (version_compare(Subsonic_XML_Data::API_VERSION, $version) < 0) {
+if (version_compare(Subsonic_XML_Data::API_VERSION, $version) < 0 && !($clientapp == 'Sublime Music' && $version == '1.15.0')) {
     ob_end_clean();
     debug_event('rest/index', 'Requested client version is not supported', 3);
     Subsonic_Api::apiOutput2($f, Subsonic_XML_Data::createError(Subsonic_XML_Data::SSERROR_APIVERSION_SERVER, 'Requested client version is not supported', $version), $callback);
