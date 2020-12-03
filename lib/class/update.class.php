@@ -213,7 +213,7 @@ class Update
         $update_string = "* Add a rss token to allow the use of RSS unauthenticated feeds<br/ >";
         $version[]     = array('version' => '400012', 'description' => $update_string);
 
-        $update_string = "* Extend Democratic cooldown beyond 255.<br/ >";
+        $update_string = "* Extend Democratic cooldown beyond 255<br/ >";
         $version[]     = array('version' => '400013', 'description' => $update_string);
 
         $update_string = "* Add last_duration to playlist<br/ > " .
@@ -223,19 +223,19 @@ class Update
         $update_string = "* Extend artist time. smallint was too small<br/ > ";
         $version[]     = array('version' => '400015', 'description' => $update_string);
 
-        $update_string = "* Extend album and make artist even bigger. This should cover everyone.<br/ > ";
+        $update_string = "* Extend album and make artist even bigger. This should cover everyone<br/ > ";
         $version[]     = array('version' => '400016', 'description' => $update_string);
 
         $update_string = ""; // REMOVED update
         $version[]     = array('version' => '400017', 'description' => $update_string);
 
-        $update_string = "* Extend video bitrate to unsigned. There's no reason for a negative bitrate.<br/ > ";
+        $update_string = "* Extend video bitrate to unsigned. There's no reason for a negative bitrate<br/ > ";
         $version[]     = array('version' => '400018', 'description' => $update_string);
 
-        $update_string = "* Put 'of_the_moment' into a per user preference.<br/ > ";
+        $update_string = "* Put 'of_the_moment' into a per user preference<br/ > ";
         $version[]     = array('version' => '400019', 'description' => $update_string);
 
-        $update_string = "* Add filter_users to catalog table<br />";
+        $update_string = "* Add filter_users to catalog table<br/ > ";
         $version[]     = array('version' => '400020', 'description' => $update_string);
 
         return $version;
