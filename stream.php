@@ -108,18 +108,6 @@ switch ($_REQUEST['action']) {
         $playlist  = new Playlist($_REQUEST['playlist_id']);
         $media_ids = $playlist->get_random_items();
         break;
-    case 'random':
-        $matchlist = array();
-        if ($_REQUEST['genre'][0] != '-1') {
-            $matchlist['genre'] = $_REQUEST['genre'];
-        }
-        if (Core::get_request('catalog') != '-1') {
-            $matchlist['catalog'] = Core::get_request('catalog');
-        }
-        /* Setup the options array */
-        $options   = array('limit' => $_REQUEST['random'], 'random_type' => $_REQUEST['random_type'], 'size_limit' => $_REQUEST['size_limit']);
-        $media_ids = get_random_songs($options, $matchlist);
-        break;
     case 'democratic':
         $democratic = new Democratic($_REQUEST['democratic_id']);
         $urls       = array($democratic->play_url());
@@ -166,7 +154,7 @@ switch ($_REQUEST['action']) {
         break;
 }
 
-debug_event('stream', 'Stream Type: ' . $stream_type . ' Media IDs: ' . json_encode($media_ids), 5);
+debug_event('stream', 'Stream Type: ' . $stream_type . ' Media Count: ' . count($media_ids), 5);
 
 if (count($media_ids) || isset($urls)) {
     if ($stream_type != 'democratic') {

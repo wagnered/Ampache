@@ -232,8 +232,11 @@ class Update
         $update_string = "* Extend video bitrate to unsigned. There's no reason for a negative bitrate.<br/ > ";
         $version[]     = array('version' => '400018', 'description' => $update_string);
 
-        $update_string = "* Add filter_users to catalog table<br />";
+        $update_string = "* Put 'of_the_moment' into a per user preference.<br/ > ";
         $version[]     = array('version' => '400019', 'description' => $update_string);
+
+        $update_string = "* Add filter_users to catalog table<br />";
+        $version[]     = array('version' => '400020', 'description' => $update_string);
 
         return $version;
     }
@@ -1123,7 +1126,8 @@ class Update
      */
     public static function update_400007()
     {
-        $sql = "INSERT INTO `preference` (`name`, `value`, `description`, `level`, `type`, `catagory`, `subcatagory`) " .
+        $retval = true;
+        $sql    = "INSERT INTO `preference` (`name`, `value`, `description`, `level`, `type`, `catagory`, `subcatagory`) " .
             "VALUES ('show_skipped_times', '0', 'Show # skipped', 25, 'boolean', 'interface', 'library')";
         $retval &= Dba::write($sql);
         $row_id = Dba::insert_id();
@@ -1343,9 +1347,28 @@ class Update
     /**
      * update_400019
      *
-     * Add filter_users to catalog table
+     * Put of_the_moment into a per user preference
      */
     public static function update_400019()
+    {
+        $retval = true;
+
+        $sql = "INSERT INTO `preference` (`name`, `value`, `description`, `level`, `type`, `catagory`, `subcatagory`) " .
+            "VALUES ('of_the_moment', '6', 'Set the amount of items Album/Video of the Moment will display', 25, 'integer', 'interface', 'home')";
+        $retval &= Dba::write($sql);
+        $row_id = Dba::insert_id();
+        $sql    = "INSERT INTO `user_preference` VALUES (-1,?, '')";
+        $retval &= Dba::write($sql, array($row_id));
+
+        return $retval;
+    }
+
+    /**
+     * update_400020
+     *
+     * Add filter_users to catalog table
+     */
+    public static function update_400020()
     {
         $retval = true;
         $sql    = "ALTER TABLE `catalog` ADD `filter_users` VARCHAR(255) NULL;";
