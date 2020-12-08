@@ -458,8 +458,9 @@ class Stats
                 $sql .= " LEFT JOIN `album` on `album`.`id` = `object_count`.`object_id`" .
                         " AND `object_count`.`object_type` = 'album'";
             }
-            if ($catalog_filter && in_array($type, array('album', 'artist'))) {
-                $sql .= "LEFT JOIN `song` ON `$type`.`id` = `song`.`$type`";
+            if ($catalog_filter && in_array($type, array('song', 'album', 'artist'))) {
+                $sql .= "LEFT JOIN `song` ON `object_count`.`object_type` = '$type' AND `object_count`.`object_id` = ";
+                $sql .= ($type == 'song') ? "`song`.`id`" : "`song`.`$type`";
             }
             if ($user_id !== null) {
                 $sql .= " WHERE `object_type` = '" . $type . "' AND `user` = " . (string) $user_id;
@@ -478,7 +479,7 @@ class Stats
                         " (SELECT `object_id` FROM `rating`" .
                         " WHERE `rating`.`object_type` = '" . $type . "'" .
                         " AND `rating`.`rating` <=" . $rating_filter .
-                        " AND `rating`.`user` = " . $user_id . ")";
+                        " AND `rating`.`user` = " . $user_id . ") ";
             }
             if ($catalog_filter && in_array($type, array('song', 'album', 'artist'))) {
                 if (!$user_id) {
