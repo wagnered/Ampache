@@ -68,7 +68,17 @@ UI::show_box_top(sprintf(T_('Settings for Catalog: %s'), $catalog->name . ' (' .
                 <?php echo T_('Catalog User Filter'); ?>:<br />
             </td>
             <td>
-                <input type="text" name="filter_users" value="<?php echo scrub_out($catalog->filter_users);?>" />
+                <?php
+                $ids      = explode(',', $catalog->filter_users);
+                $options  = array();
+                $users    = User::get_details();
+                if (!empty($users)) {
+                    foreach ($users as $user_id => $username) {
+                        $selected  = in_array($user_id, $ids) ? ' selected="selected"' : '';
+                        $options[] = '<option value="' . $user_id . '"' . $selected . '>' . $username . '</option>';
+                    }
+                    echo '<select multiple size="5" name="filter_users[]">' . implode("\n", $options) . '</select>';
+                } ?>
             </td>
         </tr>
     </table>

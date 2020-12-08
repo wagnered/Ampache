@@ -1589,6 +1589,23 @@ class User extends database_object
     } // is_xmlrpc
 
     /**
+     * get_details
+     * Returns a keyed array of user id and name.
+     * @return array
+     */
+    public static function get_details()
+    {
+        $sql        = "SELECT `id`, `username` FROM `user` ORDER BY `username`";
+        $results    = array();
+        $db_results = Dba::read($sql);
+        while ($row = Dba::fetch_assoc($db_results)) {
+            $results[$row['id']] = $row['username'];
+        }
+
+        return $results;
+    } // get_details
+
+    /**
      * get_followers
      * Get users following this user
      * @return integer[]

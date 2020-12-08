@@ -213,7 +213,7 @@ class Playlist extends playlist_object
         }
 
         return $results;
-    } // get_playlists
+    } // get_details
 
     /**
      * format

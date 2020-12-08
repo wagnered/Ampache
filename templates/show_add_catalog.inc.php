@@ -70,7 +70,17 @@ $default_sort   = "%a/%A"; ?>
         </tr>
         <tr>
             <td><?php echo T_('Catalog User Filter'); ?>:<br /></td>
-            <td><input type="text" name="filter_users" value="" /></td>
+            <td>
+                <?php
+                $options  = array();
+                $users    = User::get_details();
+                if (!empty($users)) {
+                    foreach ($users as $user_id => $username) {
+                        $options[] = '<option value="' . $user_id . '">' . $username . '</option>';
+                    }
+                    echo '<select multiple size="5" name="filter_users[]">' . implode("\n", $options) . '</select>';
+                } ?>
+            </td>
         </tr>
         <tr>
             <td><?php echo T_('Gather Art'); ?>:</td>
