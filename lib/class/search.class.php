@@ -1411,8 +1411,8 @@ class Search extends playlist_object
                         $where[]           = "`realtag_$key`.`name` $sql_match_operator '$input'";
                         $join['tag'][$key] = "$sql_match_operator '$input'";
                     } else {
-                        $where[]           = "find_in_set('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0";
-                        $join['tag'][$key] = "find_in_set('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0";
+                        $where[]           = "FIND_IN_SET('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0";
+                        $join['tag'][$key] = "FIND_IN_SET('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0";
                     }
                     break;
                 case 'has_image':
@@ -1543,8 +1543,8 @@ class Search extends playlist_object
                         $where[]           = "`realtag_$key`.`name` $sql_match_operator '$input'";
                         $join['tag'][$key] = "$sql_match_operator '$input'";
                     } else {
-                        $where[]           = "find_in_set('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0";
-                        $join['tag'][$key] = "find_in_set('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0";
+                        $where[]           = "FIND_IN_SET('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0";
+                        $join['tag'][$key] = "FIND_IN_SET('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0";
                     }
                     break;
                 case 'rating':
@@ -1769,8 +1769,8 @@ class Search extends playlist_object
                         $tag_string        = "`realtag_$key`.`name` IS NULL ";
                         $join['tag'][$key] = "AND `tag`.`name` = '$input' ";
                     } else {
-                        $tag_string        = "find_in_set('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0 ";
-                        $join['tag'][$key] = "AND find_in_set('$input', cast(`name` as char)) $sql_match_operator 0 ";
+                        $tag_string        = "FIND_IN_SET('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0 ";
+                        $join['tag'][$key] = "AND FIND_IN_SET('$input', cast(`name` as char)) $sql_match_operator 0 ";
                     }
                     // we want AND NOT and like for this query to really exclude them
                     if ($sql_match_operator == 'NOT LIKE' || $sql_match_operator == 'NOT' || $sql_match_operator == '!=') {
@@ -1804,8 +1804,8 @@ class Search extends playlist_object
                         $where[]           = "`realtag_$key`.`name` IS NULL ";
                         $join['tag'][$key] = "AND `tag`.`name` = '$input' ";
                     } else {
-                        $where[]           = "find_in_set('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0 ";
-                        $join['tag'][$key] = "AND find_in_set('$input', cast(`name` as char)) $sql_match_operator 0 ";
+                        $where[]           = "FIND_IN_SET('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0 ";
+                        $join['tag'][$key] = "AND FIND_IN_SET('$input', cast(`name` as char)) $sql_match_operator 0 ";
                     }
                     break;
                 case 'album_tag':
@@ -1824,8 +1824,8 @@ class Search extends playlist_object
                         $where[]                 = "`realtag_$key`.`name` IS NULL ";
                         $join['album_tag'][$key] = "AND `tag`.`name` = '$input' ";
                     } else {
-                        $where[]                 = "find_in_set('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0 ";
-                        $join['album_tag'][$key] = "AND find_in_set('$input', cast(`name` as char)) $sql_match_operator 0 ";
+                        $where[]                 = "FIND_IN_SET('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0 ";
+                        $join['album_tag'][$key] = "AND FIND_IN_SET('$input', cast(`name` as char)) $sql_match_operator 0 ";
                     }
                     break;
                 case 'artist_tag':
@@ -1844,8 +1844,8 @@ class Search extends playlist_object
                         $where[]                  = "`realtag_$key`.`name` IS NULL ";
                         $join['artist_tag'][$key] = "AND `tag`.`name` = '$input' ";
                     } else {
-                        $where[]                  = "find_in_set('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0 ";
-                        $join['artist_tag'][$key] = "AND find_in_set('$input', cast(`name` as char)) $sql_match_operator 0 ";
+                        $where[]                  = "FIND_IN_SET('$input', cast(`realtag_$key`.`name` as char)) $sql_match_operator 0 ";
+                        $join['artist_tag'][$key] = "AND FIND_IN_SET('$input', cast(`name` as char)) $sql_match_operator 0 ";
                     }
                     break;
                 case 'title':

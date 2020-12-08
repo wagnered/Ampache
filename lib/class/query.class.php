@@ -1384,7 +1384,8 @@ class Query
                     }
                     break;
                 case 'catalog_filter':
-                        $filter_sql = " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR `filter_users` IS NULL) AND ";
+                    $user_id    = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                    $filter_sql = " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$value', `filter_users`) = 0 OR `filter_users` IS NULL) AND ";
                 break;
                 case 'catalog_enabled':
                     $this->set_join('left', '`catalog`', '`catalog`.`id`', '`song`.`catalog`', 100);
@@ -1452,7 +1453,8 @@ class Query
                 case 'catalog_filter':
                     $this->set_join('left', '`song`', '`album`.`id`', '`song`.`album`', 100);
                     $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
-                    $filter_sql = " (`song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
+                    $user_id    = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                    $filter_sql = " (`song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
                     break;
                 case 'update_lt':
                     $this->set_join('left', '`song`', '`song`.`album`', '`album`.`id`', 100);
@@ -1492,7 +1494,8 @@ class Query
                 case 'catalog_filter':
                     $this->set_join('left', '`song`', '`artist`.`id`', '`song`.`artist`', 100);
                     $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
-                    $filter_sql = " (`song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
+                    $user_id    = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                    $filter_sql = " (`song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
                     break;
                 case 'exact_match':
                     $filter_sql = " `artist`.`name` = '" . Dba::escape($value) . "' AND ";
@@ -1565,7 +1568,8 @@ class Query
                     $filter_sql = " `live_stream`.`name` LIKE '" . Dba::escape($value) . "%' AND ";
                     break;
                 case 'catalog_filter':
-                    $filter_sql = " (`live_stream`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
+                    $user_id    = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                    $filter_sql = " (`live_stream`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
                     break;
                 case 'catalog_enabled':
                     $this->set_join('left', '`catalog`', '`catalog`.`id`', '`live_stream`.`catalog`', 100);
@@ -1678,7 +1682,8 @@ class Query
                     $filter_sql = " `video`.`title` LIKE '" . Dba::escape($value) . "%' AND ";
                     break;
                 case 'catalog_filter':
-                    $filter_sql = " `video`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR `filter_users` IS NULL) AND ";
+                    $user_id    = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                    $filter_sql = " `video`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$value', `filter_users`) = 0 OR `filter_users` IS NULL) AND ";
                     break;
                 default:
                     break;
@@ -1837,7 +1842,7 @@ class Query
                     }
                     break;
                 case 'catalog_filter':
-                    $filter_sql = " (`podcast`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
+                    $filter_sql = " (`podcast`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
                     break;
                 case 'starts_with':
                     $filter_sql = " `podcast`.`title` LIKE '" . Dba::escape($value) . "%' AND ";

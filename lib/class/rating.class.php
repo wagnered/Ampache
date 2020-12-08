@@ -214,7 +214,8 @@ class Rating extends database_object
             $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         if (AmpConfig::get('album_group') && $type === 'album') {
             $sql .= " GROUP BY `album`.`prefix`, `album`.`name`, `album`.`album_artist`, `album`.`release_type`, `album`.`mbid`, `album`.`year`" .

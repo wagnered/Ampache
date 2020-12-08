@@ -122,7 +122,8 @@ class TVShow extends database_object implements library_item
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $where .= "AND `video`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= "AND `video`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= "ORDER BY `tvshow_season`.`season_number`, `tvshow_episode`.`episode_number`";
         $db_results = Dba::read($sql);

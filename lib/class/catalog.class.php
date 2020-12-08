@@ -625,10 +625,16 @@ abstract class Catalog extends database_object
      */
     public static function get_catalogs($filter_type = '')
     {
-        $params     = array();
-        $sql        = "SELECT `id` FROM `catalog` ";
+        $params = array();
+        $sql    = "SELECT `id` FROM `catalog` ";
+        $filter = AmpConfig::get('catalog_filter');
+        if ($filter) {
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= "WHERE (FIND_IN_SET('$user_id', `filter_users`) = 0 or `filter_users` IS NULL) ";
+        }
         if (!empty($filter_type)) {
-            $sql .= "WHERE `gather_types` = ? ";
+            $sql .= ($filter) ? "AND " : "WHERE ";
+            $sql .= "`gather_types` = ? ";
             $params[] = $filter_type;
         }
         $sql .= "ORDER BY `name`";

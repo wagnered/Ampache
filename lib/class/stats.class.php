@@ -269,7 +269,8 @@ class Stats
                "WHERE `object_count`.`user` = ? AND `object_count`.`object_type` " .
                "IN ('song', 'video', 'podcast_episode') AND `object_count`.`count_type` IN ('stream', 'skip') ";
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         if ($agent) {
             $sql .= "AND `object_count`.`agent` = ? ";
@@ -400,7 +401,8 @@ class Stats
             $sql .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= "ORDER BY `object_count`.`date` " . $order;
         $db_results = Dba::read($sql, array($user_id, $time));
@@ -467,7 +469,8 @@ class Stats
                 $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
             }
             if (AmpConfig::get('catalog_filter') && in_array($type, array('song', 'album', 'artist'))) {
-                $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+                $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
             }
             $rating_filter = AmpConfig::get_rating_filter();
             if ($rating_filter > 0 && $rating_filter <= 5 && $user_id !== null) {
@@ -548,16 +551,17 @@ class Stats
         if (AmpConfig::get('catalog_disable') && in_array($type, array('song', 'artist', 'album'))) {
             $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
         }
-        if (AmpConfig::get('catalog_filter') && in_array($type, array('song', 'album', 'artist'))) {
-            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
-        }
         $rating_filter = AmpConfig::get_rating_filter();
         if ($rating_filter > 0 && $rating_filter <= 5 && !empty($user_id)) {
             $sql .= " AND `object_id` NOT IN" .
                     " (SELECT `object_id` FROM `rating`" .
                     " WHERE `rating`.`object_type` = '" . $type . "'" .
                     " AND `rating`.`rating` <=" . $rating_filter .
-                    " AND `rating`.`user` = " . $user_id . ")";
+                    " AND `rating`.`user` = " . $user_id . ") ";
+        }
+        if (AmpConfig::get('catalog_filter') && in_array($type, array('song', 'album', 'artist'))) {
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= " AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= " GROUP BY `object_id` ORDER BY MAX(`date`) " . $ordersql . ", `id` ";
 
@@ -716,7 +720,8 @@ class Stats
                 $multi_where = 'AND';
             }
             if (AmpConfig::get('catalog_filter') && in_array($type, array('song', 'album', 'artist'))) {
-                $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+                $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
             }
         }
         if ($allow_group_disks && $type == 'album') {

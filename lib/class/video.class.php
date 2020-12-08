@@ -758,7 +758,8 @@ class Video extends database_object implements media, library_item
             $where .= "AND `catalog`.`enabled` = '1' ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $where .= "AND `video`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $where .= "AND `video`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
 
         $sql .= $where;

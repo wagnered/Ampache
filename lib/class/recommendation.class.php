@@ -202,7 +202,8 @@ class Recommendation
                         $sql .= "AND `catalog`.`enabled` = '1'";
                     }
                     if (AmpConfig::get('catalog_filter')) {
-                        $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+                        $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                        $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
                     }
 
                     $db_result = Dba::read($sql, array($name, $s_artist_name['string']));
@@ -287,7 +288,8 @@ class Recommendation
                             $sql .= " AND " . Catalog::get_enable_filter('artist', '`artist`.`id`');
                         }
                         if (AmpConfig::get('catalog_filter')) {
-                            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+                            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
                         }
                         $db_result = Dba::read($sql, array($mbid));
                         if ($result = Dba::fetch_assoc($db_result)) {
@@ -306,7 +308,8 @@ class Recommendation
                             $sql .= " AND " . Catalog::get_enable_filter('artist', '`artist`.`id`');
                         }
                         if (AmpConfig::get('catalog_filter')) {
-                            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+                            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                            $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
                         }
                         $db_result = Dba::read($sql, array($searchname, $searchname));
                         if ($result = Dba::fetch_assoc($db_result)) {

@@ -53,7 +53,8 @@ class Random
                     " AND `rating`.`user` = " . $user_id . ")";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= "GROUP BY `artist`.`id` " .
                 "ORDER BY RAND() LIMIT 1";
@@ -140,7 +141,8 @@ class Random
                     " AND `rating`.`user` = " . $user_id . ")";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= "ORDER BY RAND() LIMIT $limit";
         $db_results = Dba::read($sql);
@@ -188,7 +190,8 @@ class Random
                     " AND `user_flag`.`user` = " . $user_id . ") ";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= "ORDER BY RAND() LIMIT $limit";
         $db_results = Dba::read($sql);
@@ -240,7 +243,8 @@ class Random
                     " AND `rating`.`user` = " . $user_id . ")";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
             $multi_where = 'AND';
         }
         if ($data[0]) {
@@ -294,7 +298,8 @@ class Random
                     " AND `rating`.`user` = " . $user_id . ")";
         }
         if (AmpConfig::get('catalog_filter')) {
-            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE find_in_set('" . (string) Core::get_global('user')->id . "', `filter_users`) = 0 OR `filter_users` IS NULL) ";
+            $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+            $sql .= $multi_where . " `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
         $sql .= "$where_sql ORDER BY RAND() LIMIT $limit";
         $db_results = Dba::read($sql);
