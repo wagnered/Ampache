@@ -365,7 +365,7 @@ class XML_Data
      * we want
      *
      * @param  array $objects (description here...)
-     * @param  string $object_type 'artist'|'album'|'song'|'playlist'|'share'|'podcast'|'podcast_episode'
+     * @param  string $object_type 'artist'|'album'|'song'|'playlist'|'share'|'podcast'|'podcast_episode'|'live_stream'
      * @param  boolean $full_xml whether to return a full XML document or just the node.
      * @param  boolean $include include episodes from podcasts or tracks in a playlist
      * @return string   return xml
@@ -377,7 +377,7 @@ class XML_Data
         }
         $string = "<total_count>" . Catalog::get_count($object_type) . "</total_count>\n";
 
-        // 'artist'|'album'|'song'|'playlist'|'share'|'podcast'|'podcast_episode'
+        // 'artist'|'album'|'song'|'playlist'|'share'|'podcast'|'podcast_episode'|'live_stream'
         foreach ($objects as $object_id) {
             switch ($object_type) {
                 case 'artist':
@@ -480,6 +480,14 @@ class XML_Data
                 case 'video':
                     $string .= self::videos($objects);
                     break;
+                case 'live_stream':
+                    $live_stream = new Live_Stream($object_id);
+                    $live_stream->format();
+                    $string .= "<$object_type id=\"" . $object_id . "\">\n" .
+                        "\t<name><![CDATA[" . $live_stream->f_name . "]]></name>\n" .
+                        "\t<url><![CDATA[" . $live_stream->url . "]]></url>\n" .
+                        "\t<codec><![CDATA[" . $live_stream->codec . "]]></codec>\n" .
+                        "</$object_type>\n";
             }
         } // end foreach objects
 
@@ -1012,7 +1020,7 @@ class XML_Data
                     "\t<rate>" . $song->rate . "</rate>\n" .
                     "\t<mode><![CDATA[" . $song->mode . "]]></mode>\n" .
                     "\t<mime><![CDATA[" . $song->mime . "]]></mime>\n" .
-                    "\t<url><![CDATA[" . $song->play_url('&format=raw', 'api', false, $user_id) . "]]></url>\n" .
+                    "\t<url><![CDATA[" . $song->play_url('', 'api', false, $user_id) . "]]></url>\n" .
                     "\t<size>" . $song->size . "</size>\n" .
                     "\t<mbid><![CDATA[" . $song->mbid . "]]></mbid>\n" .
                     "\t<album_mbid><![CDATA[" . $song->album_mbid . "]]></album_mbid>\n" .
@@ -1126,7 +1134,7 @@ class XML_Data
                     "\t<track>" . $song->track . "</track>\n" .
                     "\t<time><![CDATA[" . $song->time . "]]></time>\n" .
                     "\t<mime><![CDATA[" . $song->mime . "]]></mime>\n" .
-                    "\t<url><![CDATA[" . $song->play_url('&format=raw', 'api', false, $user_id) . "]]></url>\n" .
+                    "\t<url><![CDATA[" . $song->play_url('', 'api', false, $user_id) . "]]></url>\n" .
                     "\t<size>" . $song->size . "</size>\n" .
                     "\t<art><![CDATA[" . $art_url . "]]></art>\n" .
                     "\t<preciserating>" . ($rating->get_user_rating($user_id) ?: null) . "</preciserating>\n" .
