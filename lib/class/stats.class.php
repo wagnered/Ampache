@@ -446,6 +446,7 @@ class Stats
                    "GROUP BY `object_id`, `object_type`";
         } else {
             $allow_group_disks = (AmpConfig::get('album_group')) ? true : false;
+            $catalog_filter    = AmpConfig::get('catalog_filter');
             // Select Top objects counting by # of rows for you only
             $sql = "SELECT MAX(`object_id`) as `id`, COUNT(*) AS `count`";
             // Add additional columns to use the select query as insert values directly
@@ -456,6 +457,9 @@ class Stats
             if ($allow_group_disks && $type == 'album') {
                 $sql .= " LEFT JOIN `album` on `album`.`id` = `object_count`.`object_id`" .
                         " AND `object_count`.`object_type` = 'album'";
+            }
+            if ($catalog_filter && in_array($type, array('album', 'artist'))) {
+                $sql .= "LEFT JOIN `song` ON `$type`.`id` = `song`.`$type`";
             }
             if ($user_id !== null) {
                 $sql .= " WHERE `object_type` = '" . $type . "' AND `user` = " . (string) $user_id;
@@ -468,10 +472,6 @@ class Stats
             if (AmpConfig::get('catalog_disable') && in_array($type, array('song', 'artist', 'album'))) {
                 $sql .= " AND " . Catalog::get_enable_filter($type, '`object_id`');
             }
-            if (AmpConfig::get('catalog_filter') && in_array($type, array('song', 'album', 'artist'))) {
-                $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
-                $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
-            }
             $rating_filter = AmpConfig::get_rating_filter();
             if ($rating_filter > 0 && $rating_filter <= 5 && $user_id !== null) {
                 $sql .= " AND `object_id` NOT IN" .
@@ -479,6 +479,12 @@ class Stats
                         " WHERE `rating`.`object_type` = '" . $type . "'" .
                         " AND `rating`.`rating` <=" . $rating_filter .
                         " AND `rating`.`user` = " . $user_id . ")";
+            }
+            if ($catalog_filter && in_array($type, array('song', 'album', 'artist'))) {
+                if (!$user_id) {
+                    $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
+                }
+                $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
             }
             $sql .= " AND `count_type` = '" . $count_type . "'";
             if ($allow_group_disks && $type == 'album') {
@@ -626,9 +632,9 @@ class Stats
 
         // Select Objects based on user
         // FIXME:: Requires table scan, look at improving
-        $sql = "SELECT `object_id`, COUNT(`id`) AS `count` FROM `object_count`" .
-                " WHERE `object_type` = ? AND `date` >= ? AND `user` = ?" .
-                " GROUP BY `object_id` ORDER BY `count` DESC LIMIT $input_count";
+        $sql = "SELECT `object_id`, COUNT(`id`) AS `count` FROM `object_count` " .
+                "WHERE `object_type` = ? AND `date` >= ? AND `user` = ? " .
+                "GROUP BY `object_id` ORDER BY `count` DESC LIMIT $input_count";
         $db_results = Dba::read($sql, array($type, $date, $user));
 
         $results = array();
