@@ -1445,13 +1445,11 @@ class Query
                 case 'catalog':
                     if ($value != 0) {
                         $this->set_join('left', '`song`', '`album`.`id`', '`song`.`album`', 100);
-                        $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
                         $filter_sql = " (`song`.`catalog` = '$value') AND ";
                     }
                     break;
                 case 'catalog_filter':
                     $this->set_join('left', '`song`', '`album`.`id`', '`song`.`album`', 100);
-                    $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
                     $filter_sql = " (`song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
                     break;
                 case 'update_lt':
@@ -1485,13 +1483,11 @@ class Query
                 case 'catalog':
                     if ($value != 0) {
                         $this->set_join('left', '`song`', '`artist`.`id`', '`song`.`artist`', 100);
-                        $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
                         $filter_sql = "  (`catalog`.`id` = '$value') AND ";
                     }
                     break;
                 case 'catalog_filter':
                     $this->set_join('left', '`song`', '`artist`.`id`', '`song`.`artist`', 100);
-                    $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
                     $filter_sql = " (`song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
                     break;
                 case 'exact_match':
@@ -1779,8 +1775,7 @@ class Query
                     break;
                 case 'catalog_filter':
                     $this->set_join('left', '`label_asso`', '`label`.`id`', '`label_asso`.`label`', 100);
-                    $this->set_join('left', '`song`', '`label_asso`.`artist`', '`song`.`artist`', 100);
-                    $this->set_join('left', '`catalog`', '`song`.`catalog`', '`catalog`.`id`', 100);
+                    $this->set_join('right', '`song`', '`label_asso`.`artist`', '`song`.`artist`', 100);
                     $filter_sql = " (`song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$value', `filter_users`) = 0 OR `filter_users` IS NULL)) AND ";
                     break;
                 default:
