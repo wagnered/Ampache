@@ -127,6 +127,9 @@ switch ($_REQUEST['action']) {
         if (AmpConfig::get('catalog_disable')) {
             $browse->set_filter('catalog_enabled', '1');
         }
+        if (AmpConfig::get('catalog_filter')) {
+            $browse->set_filter('catalog_filter', (string) Core::get_global('user')->id);
+        }
         $browse->set_filter('album_artist', true);
         $browse->set_sort('name', 'ASC');
         $browse->update_browse_from_session();
