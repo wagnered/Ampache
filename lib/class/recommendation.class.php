@@ -280,10 +280,13 @@ class Recommendation
                     $name     = (string) $child->name;
                     $mbid     = (string) $child->mbid;
                     $local_id = null;
+                    // if you filter by catalog you need a join
+                    $filter   = AmpConfig::get('catalog_filter');
+                    $join     = ($filter) ? "LEFT JOIN `song` ON `artist`.`id` = `song`.`artist`" : "";
 
                     // First we check by MBID
                     if ($mbid) {
-                        $sql = "SELECT `artist`.`id` FROM `artist` WHERE `mbid` = ?";
+                        $sql = "SELECT `artist`.`id` FROM `artist` $join WHERE `mbid` = ?";
                         if (AmpConfig::get('catalog_disable')) {
                             $sql .= " AND " . Catalog::get_enable_filter('artist', '`artist`.`id`');
                         }
@@ -302,8 +305,8 @@ class Recommendation
                     if ($local_id === null) {
                         $searchname = Catalog::trim_prefix($name);
                         $searchname = Dba::escape($searchname['string']);
-                        $sql        = "SELECT `artist`.`id` FROM `artist` WHERE `artist`.`name` = ? OR " .
-                            "LTRIM(CONCAT(COALESCE(`artist`.`prefix`, ''), ' ', `artist`.`name`)) = ?";
+                        $sql        = "SELECT `artist`.`id` FROM `artist` $join WHERE `artist`.`name` = ? OR " .
+                            "LTRIM(CONCAT(COALESCE(`artist`.`prefix`, ''), ' ', `artist`.`name`)) = ? ";
                         if (AmpConfig::get('catalog_disable')) {
                             $sql .= " AND " . Catalog::get_enable_filter('artist', '`artist`.`id`');
                         }
