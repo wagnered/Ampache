@@ -262,13 +262,15 @@ class Stats
         }
 
         $sqlres = array($user_id);
+        $filter = AmpConfig::get('catalog_filter');
+        $join   = ($filter) ? "LEFT JOIN `song` ON `object_count`.`object_id` = `song`.`id` and `object_count`.`object_type` = 'song' " : "";
 
         $sql = "SELECT `object_count`.`id`, `object_count`.`object_type`, `object_count`.`object_id`, " .
                "`object_count`.`user`, `object_count`.`agent`, `object_count`.`date`, " .
                "`object_count`.`count_type` FROM `object_count` " .
-               "WHERE `object_count`.`user` = ? AND `object_count`.`object_type` " .
+               "WHERE `object_count`.`user` = ? AND `object_count`.`object_type` " . $join .
                "IN ('song', 'video', 'podcast_episode') AND `object_count`.`count_type` IN ('stream', 'skip') ";
-        if (AmpConfig::get('catalog_filter')) {
+        if ($filter) {
             $user_id = Core::get_global('user')->id ? scrub_out(Core::get_global('user')->id) : '-1';
             $sql .= "AND `song`.`catalog` IN (SELECT `id` FROM `catalog` WHERE FIND_IN_SET('$user_id', `filter_users`) = 0 OR `filter_users` IS NULL) ";
         }
