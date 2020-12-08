@@ -63,6 +63,7 @@ UI::show_box_top(sprintf(T_('Settings for Catalog: %s'), $catalog->name . ' (' .
             <td><?php echo T_('Folder Pattern'); ?>:<br /><?php echo T_("(no leading or ending '/')"); ?></td>
             <td><input type="text" name="sort_pattern" value="<?php echo scrub_out($catalog->sort_pattern);?>" /></td>
         </tr>
+            <?php if (AmpConfig::get('catalog_filter')) { ?>
         <tr>
             <td>
                 <?php echo T_('Catalog User Filter'); ?>:<br />
@@ -81,6 +82,7 @@ UI::show_box_top(sprintf(T_('Settings for Catalog: %s'), $catalog->name . ' (' .
                 } ?>
             </td>
         </tr>
+            <?php } ?>
     </table>
     <div class="formValidation">
         <input type="hidden" name="catalog_id" value="<?php echo scrub_out($catalog->id); ?>" />
