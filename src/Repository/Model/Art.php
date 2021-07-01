@@ -818,7 +818,24 @@ class Art extends database_object
         // Create a new blank image of the correct size
         $thumbnail = imagecreatetruecolor((int) $size['width'], (int) $size['height']);
 
-        if (!imagecopyresampled($thumbnail, $source, 0, 0, 0, 0, $size['width'], $size['height'], $source_size['width'], $source_size['height'])) {
+        if ($source_size['width'] > $source_size['height']) { // landscape
+            $new_height = $size['height'];
+            $new_width  = floor($source_size['width'] * ($new_height / $source_size['height']));
+            $crop_x     = ceil(($source_size['width'] - $source_size['height']) / 2);
+            $crop_y     = 0;
+        } elseif ($source_size['height'] > $source_size['width']) { // portrait
+            $new_width  = $size['width'];
+            $new_height = floor($source_size['height'] * ($new_width / $source_size['width']));
+            $crop_x     = 0;
+            $crop_y     = ceil(($source_size['height'] - $source_size['width']) / 3); // assuming most portrait images would have faces closer to the top
+        } else { // square
+            $new_width  = $size['width'];
+            $new_height = $size['height'];
+            $crop_x     = 0;
+            $crop_y     = 0;
+        }
+
+        if (!imagecopyresampled($thumbnail, $source, 0, 0, $crop_x, $crop_y, $new_width, $new_height, $source_size['width'], $source_size['height'])) {
             debug_event(self::class, 'Unable to create resized image', 1);
             imagedestroy($source);
             imagedestroy($thumbnail);
@@ -1058,13 +1075,13 @@ class Art extends database_object
             // iterate over our types and delete the images
             foreach ($types as $type) {
                 if (AmpConfig::get('album_art_store_disk')) {
-                    $sql        = "SELECT `image`.`object_id`, `image`.`object_type` FROM `image` LEFT JOIN `" . $type . "` ON `" . $type . "`.`id`=`image`.`object_id` WHERE `object_type`='" . $type . "' AND `" . $type . "`.`id` IS NULL";
+                    $sql        = "SELECT `image`.`object_id`, `image`.`object_type` FROM `image` LEFT JOIN `" . $type . "` ON `" . $type . "`.`id`=" . "`image`.`object_id` WHERE `object_type`='" . $type . "' AND `" . $type . "`.`id` IS NULL";
                     $db_results = Dba::read($sql);
                     while ($row = Dba::fetch_row($db_results)) {
                         self::delete_from_dir($row[1], $row[0]);
                     }
                 }
-                $sql = "DELETE FROM `image` USING `image` LEFT JOIN `" . $type . "` ON `" . $type . "`.`id`=`image`.`object_id` WHERE `object_type`='" . $type . "' AND `" . $type . "`.`id` IS NULL";
+                $sql = "DELETE FROM `image` USING `image` LEFT JOIN `" . $type . "` ON `" . $type . "`.`id`=" . "`image`.`object_id` WHERE `object_type`='" . $type . "' AND `" . $type . "`.`id` IS NULL";
                 Dba::write($sql);
             } // foreach
         }
@@ -1096,7 +1113,7 @@ class Art extends database_object
         if (Art::has_db($new_object_id, $object_type)) {
             return false;
         }
-        debug_event(self::class, "duplicate $object_type: {{$old_object_id}} to {{$new_object_id}}", 5);
+        debug_event(self::class, 'duplicate... type:' . $object_type . ' old_id:' . $old_object_id . ' new_id:' . $new_object_id, 5);
         if (AmpConfig::get('album_art_store_disk')) {
             $sql        = "SELECT `size`, `kind` FROM `image` WHERE `object_type` = ? AND `object_id` = ?";
             $db_results = Dba::read($sql, array($object_type, $old_object_id));
