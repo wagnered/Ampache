@@ -147,7 +147,7 @@ final class MetaTagCollectorModule implements CollectorModuleInterface
             );
         }
 
-        // stop collecting dupes for each album/]/
+        // stop collecting dupes for each album/track
         $raw_array = array();
         foreach ($data as $image) {
             $raw_array[] = $image['raw'];
@@ -194,7 +194,6 @@ final class MetaTagCollectorModule implements CollectorModuleInterface
                         [LegacyLogger::CONTEXT_TYPE => __CLASS__]
                     );
                 } elseif (isset($image['typeid']) && !in_array($image['data'], $raw_array)) {
-//                  $type   = self::getPictureType((int)$image['typeid']);
                     $type   = $image['picturetype'];
                     $data[] = [
                         $mtype => $media->file,
