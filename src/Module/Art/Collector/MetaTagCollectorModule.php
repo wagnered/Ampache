@@ -194,7 +194,8 @@ final class MetaTagCollectorModule implements CollectorModuleInterface
                         [LegacyLogger::CONTEXT_TYPE => __CLASS__]
                     );
                 } elseif (isset($image['typeid']) && !in_array($image['data'], $raw_array)) {
-                    $type   = self::getPictureType((int)$image['typeid']);
+//                  $type   = self::getPictureType((int)$image['typeid']);
+                    $type   = $image['picturetype'];
                     $data[] = [
                         $mtype => $media->file,
                         'raw' => $image['data'],

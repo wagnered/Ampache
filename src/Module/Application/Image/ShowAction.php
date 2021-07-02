@@ -147,7 +147,12 @@ final class ShowAction implements ApplicationActionInterface
                     // If we need to pull the data out of the session
                     Session::check();
                     $filename    = scrub_in($_REQUEST['image_index']);
-                    $image       = Art::get_from_source($_SESSION['form']['images'][$filename], 'album');
+                    $img         = Art::get_from_source($_SESSION['form']['images'][$filename], 'album');
+                    if (isset($img['raw'])) {
+                        $image = $img['raw'];
+                    } else {
+                        $image = $img;
+                    }
                     $mime        = $_SESSION['form']['images'][$filename]['mime'];
                     $typeManaged = true;
                     break;

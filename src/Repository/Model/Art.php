@@ -912,14 +912,15 @@ class Art extends database_object
             try {
                 $options['timeout'] = 10;
                 Requests::register_autoloader();
-                $request = Requests::get($data['url'], array(), Core::requests_options($options));
-                $raw     = $request->body;
+                $request      = Requests::get($data['url'], array(), Core::requests_options($options));
+                $raw          = $request->body;
+                $data         = $raw;
             } catch (Exception $error) {
                 debug_event(self::class, 'Error getting art: ' . $error->getMessage(), 2);
                 $raw = '';
             }
 
-            return $raw;
+            return $data;
         }
 
         // Check to see if it's a FILE
@@ -927,24 +928,19 @@ class Art extends database_object
             $handle     = fopen($data['file'], 'rb');
             $image_data = (string)fread($handle, Core::get_filesize($data['file']));
             fclose($handle);
+            $mime = get_mime_from_image(substr($image_data, 0 , 8));
 
-            return $image_data;
+            $data['raw']  = $image_data;
+            $data['mime'] = $mime;
+
+            return $data;
         }
 
         // Check to see if it is embedded in id3 of a song
         if (isset($data['song'])) {
             // If we find a good one, stop looking
             $getID3 = new getID3();
-            $id3    = $getID3->analyze($data['song']);
-
-            if ($id3['format_name'] == "WMA") {
-                return $id3['asf']['extended_content_description_object']['content_descriptors']['13']['data'];
-            } elseif (isset($id3['id3v2']['APIC'])) {
-                // Foreach in case they have more then one
-                foreach ($id3['id3v2']['APIC'] as $image) {
-                    return $image['data'];
-                }
-            }
+            $image  = gatherTagsDirectFromSong($song->id, $type);
         } // if data song
 
         return '';

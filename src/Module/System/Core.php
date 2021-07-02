@@ -321,7 +321,13 @@ class Core
             return array('width' => 0, 'height' => 0);
         }
 
-        $image = ImageCreateFromString($image_data);
+        if (isset($image_data['raw'])) {
+            $img = $image_data['raw'];
+        } else {
+            $img = $image_data;
+        }
+
+        $image = ImageCreateFromString($img);
 
         if ($image == false) {
             return array('width' => 0, 'height' => 0);

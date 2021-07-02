@@ -1208,7 +1208,7 @@ final class VaInfo implements VaInfoInterface
                 case 'catalognumber':
                     $parsed['catalog_number'] = $data[0];
                     break;
-                case 'label':
+                case 'publisher':
                     $parsed['publisher'] = $data[0];
                     break;
                 default:
